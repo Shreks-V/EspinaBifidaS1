@@ -113,6 +113,8 @@ class InMemoryCitasRepository:
         id_paciente: int | None = None,
         busqueda: str | None = None,
         current_user: dict | None = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         del current_user
         rows = [self._enriquecer(dict(c)) for c in self._citas.values()]
@@ -137,7 +139,7 @@ class InMemoryCitasRepository:
                     filt.append(r)
             rows = filt
         rows.sort(key=lambda x: str(x.get("fecha_hora") or ""), reverse=True)
-        return rows
+        return rows[offset : offset + limit]
 
     def obtener_cita(self, id_cita: int, current_user: dict | None = None) -> dict[str, Any]:
         del current_user

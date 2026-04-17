@@ -171,7 +171,10 @@ class InMemoryRecibosRepository:
         id_paciente: Optional[int] = None,
         search: Optional[str] = None,
         current_user: dict | None = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
+        del current_user
         rows = list(self._ventas.values())
         filtered: list[dict[str, Any]] = []
         for v in rows:
@@ -190,7 +193,8 @@ class InMemoryRecibosRepository:
                     continue
             filtered.append(v)
         filtered.sort(key=lambda x: str(x.get("fecha_venta") or ""), reverse=True)
-        return [self._public_row(v) for v in filtered]
+        paged = filtered[offset : offset + limit]
+        return [self._public_row(v) for v in paged]
 
     def obtener_venta(self, id_venta: int, current_user: dict | None = None) -> dict[str, Any]:
         row = self._ventas.get(int(id_venta))

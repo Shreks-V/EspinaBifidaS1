@@ -80,6 +80,8 @@ class InMemoryBeneficiariosRepository:
         membresia_estatus: str | None = None,
         tipo_cuota: str | None = None,
         current_user: dict | None = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         del current_user
         rows = [p for p in self._all() if _visible(p)]
@@ -112,7 +114,8 @@ class InMemoryBeneficiariosRepository:
                 or b in (p.get("folio") or "").lower()
                 or b in (p.get("ciudad") or "").lower()
             ]
-        return [self._response_dict(p) for p in rows]
+        paged = rows[offset : offset + limit]
+        return [self._response_dict(p) for p in paged]
 
     def obtener_beneficiario(self, folio: str, current_user: dict | None = None) -> dict[str, Any]:
         del current_user
@@ -168,7 +171,17 @@ class InMemoryBeneficiariosRepository:
         self._by_folio[folio]["activo"] = "N"
         return {"detail": "Beneficiario eliminado correctamente"}
 
-    def historial_beneficiario(self, folio: str, current_user: dict | None = None) -> dict[str, Any]:
+    def historial_beneficiario(
+        self,
+        folio: str,
+        current_user: dict | None = None,
+        limit_citas: int = 100,
+        offset_citas: int = 0,
+        limit_pagos: int = 100,
+        offset_pagos: int = 0,
+        limit_comodatos: int = 100,
+        offset_comodatos: int = 0,
+    ) -> dict[str, Any]:
         del current_user
         if folio not in self._by_folio:
             raise HTTPException(status_code=404, detail="Beneficiario no encontrado")
@@ -192,19 +205,27 @@ class InMemoryBeneficiariosRepository:
             "servicios": [],
             "doctores": [],
         }
+        citas = [sample_cita]
+        pagos: list[dict[str, Any]] = []
+        comodatos: list[dict[str, Any]] = []
         return {
             "folio": folio,
             "nombre": nombre_completo,
-            "citas": [sample_cita],
-            "pagos": [],
-            "comodatos": [],
+            "citas": citas[offset_citas : offset_citas + limit_citas],
+            "pagos": pagos[offset_pagos : offset_pagos + limit_pagos],
+            "comodatos": comodatos[offset_comodatos : offset_comodatos + limit_comodatos],
         }
 
     def listar_membresias_proximas_a_vencer(
-        self, dias: int = 30, current_user: dict | None = None
+        self,
+        dias: int = 30,
+        current_user: dict | None = None,
+        limit: int = 500,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         del dias, current_user
-        return []
+        rows: list[dict[str, Any]] = []
+        return rows[offset : offset + limit]
 
     def renovar_membresia(
         self, folio: str, data: dict, current_user: dict | None = None

@@ -153,7 +153,7 @@ import { ApiService } from '../../services/api.service';
                   </button>
                   <!-- Agendar Cita -->
                   <button (click)="navigateTo('/citas', { action: 'nueva' })"
-                    class="w-full flex items-center gap-4 p-4 rounded-2xl shadow-lg bg-gradient-to-br from-[#f3ad1c] to-[#ffb84d] text-white hover:shadow-xl transition-all cursor-pointer border-0">
+                    class="w-full flex items-center gap-4 p-4 rounded-2xl shadow-lg bg-gradient-to-br from-[#f3ad1c] to-[#ffb84d] text-slate-900 hover:shadow-xl transition-all cursor-pointer border-0">
                     <div class="p-3 bg-white/20 rounded-xl">
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -165,7 +165,7 @@ import { ApiService } from '../../services/api.service';
                     </div>
                     <div class="flex-1 text-left">
                       <p class="font-bold">Agendar Cita</p>
-                      <p class="text-xs text-white/70">Programar consulta</p>
+                      <p class="text-xs text-slate-700">Programar consulta</p>
                     </div>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

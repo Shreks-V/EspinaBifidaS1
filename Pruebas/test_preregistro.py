@@ -52,7 +52,10 @@ def test_sv24_preregistro_publico_flujo_feliz_sin_login(pre_client: TestClient):
 def test_sv25_avance_pasos_indicador_paso_actual_coherente(pre_client: TestClient):
     c = pre_client.post(BASE, json=_payload_paso1())
     assert c.status_code == 201
-    pid = c.json()["id_paciente"]
+    created = c.json()
+    pid = created["id_paciente"]
+    token = created["preregistro_token"]
+    h_pre = {"X-Preregistro-Token": token}
 
     p2 = {
         **_payload_paso1(),
@@ -61,18 +64,21 @@ def test_sv25_avance_pasos_indicador_paso_actual_coherente(pre_client: TestClien
         "fecha_nacimiento": "2015-03-20",
         "genero": "Masculino",
     }
-    u2 = pre_client.put(f"{BASE}/{pid}", json=p2)
+    u2 = pre_client.put(f"{BASE}/{pid}", json=p2, headers=h_pre)
     assert u2.status_code == 200, u2.text
     assert u2.json().get("paso_actual") == 2
 
-    g = pre_client.get(f"{BASE}/{pid}")
+    g = pre_client.get(f"{BASE}/{pid}", headers=h_pre)
     assert g.status_code == 200
     assert g.json().get("paso_actual") == 2
 
 
 def test_sv26_no_avanzar_paso_con_datos_incompletos(pre_client: TestClient):
     c = pre_client.post(BASE, json=_payload_paso1())
-    pid = c.json()["id_paciente"]
+    created = c.json()
+    pid = created["id_paciente"]
+    token = created["preregistro_token"]
+    h_pre = {"X-Preregistro-Token": token}
 
     bad_paso3 = {
         **_payload_paso1(),
@@ -81,7 +87,7 @@ def test_sv26_no_avanzar_paso_con_datos_incompletos(pre_client: TestClient):
         "ciudad": "",
         "correo_electronico": "",
     }
-    r = pre_client.put(f"{BASE}/{pid}", json=bad_paso3)
+    r = pre_client.put(f"{BASE}/{pid}", json=bad_paso3, headers=h_pre)
     assert r.status_code == 400
     assert "correo" in (r.json().get("detail") or "").lower()
 
@@ -140,8 +146,12 @@ def test_sv30_aprobar_rechazar_reflejo_estado(pre_client: TestClient):
         },
     )
     assert a.status_code == 201 and b.status_code == 201
-    id_a = a.json()["id_paciente"]
-    id_b = b.json()["id_paciente"]
+    body_a = a.json()
+    body_b = b.json()
+    id_a = body_a["id_paciente"]
+    id_b = body_b["id_paciente"]
+    h_pre_a = {"X-Preregistro-Token": body_a["preregistro_token"]}
+    h_pre_b = {"X-Preregistro-Token": body_b["preregistro_token"]}
 
     ra = pre_client.post(
         f"{BASE}/{id_a}/aprobar",
@@ -157,7 +167,7 @@ def test_sv30_aprobar_rechazar_reflejo_estado(pre_client: TestClient):
     assert rb.status_code == 200
     assert rb.json()["preregistro"].get("estatus_registro") == "RECHAZADO"
 
-    ga = pre_client.get(f"{BASE}/{id_a}")
-    gb = pre_client.get(f"{BASE}/{id_b}")
+    ga = pre_client.get(f"{BASE}/{id_a}", headers=h_pre_a)
+    gb = pre_client.get(f"{BASE}/{id_b}", headers=h_pre_b)
     assert ga.json().get("estatus_registro") == "APROBADO"
     assert gb.json().get("estatus_registro") == "RECHAZADO"

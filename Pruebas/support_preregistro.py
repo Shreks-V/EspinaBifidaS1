@@ -39,7 +39,11 @@ class InMemoryPreregistroRepository:
         return d
 
     def listar_preregistros(
-        self, estatus: str | None = None, current_user: dict | None = None
+        self,
+        estatus: str | None = None,
+        current_user: dict | None = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         del current_user
         rows = []
@@ -51,7 +55,8 @@ class InMemoryPreregistroRepository:
             elif er in ("PENDIENTE", "RECHAZADO"):
                 rows.append(r)
         rows.sort(key=lambda x: x.get("fecha_registro") or "", reverse=True)
-        return [_serialize(r) for r in rows]
+        paged = rows[offset : offset + limit]
+        return [_serialize(r) for r in paged]
 
     def crear_preregistro(self, data: PreRegistroCreate) -> dict[str, Any]:
         if not data.tipos_espina:
@@ -177,7 +182,12 @@ class InMemoryPreregistroRepository:
             "formato": ext.lstrip(".").upper() or "PDF",
         }
 
-    def listar_documentos(self, id_paciente: int) -> list[dict[str, Any]]:
+    def listar_documentos(
+        self,
+        id_paciente: int,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
         out = []
         for (pid, did), meta in self._docs.items():
             if pid != id_paciente:
@@ -192,7 +202,7 @@ class InMemoryPreregistroRepository:
                     "fecha_carga": "2026-01-16T12:00:00",
                 }
             )
-        return out
+        return out[offset : offset + limit]
 
     def obtener_documento_archivo(self, id_paciente: int, id_documento: int) -> dict[str, Any]:
         meta = self._docs.get((id_paciente, id_documento))

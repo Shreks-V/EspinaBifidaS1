@@ -1,0 +1,12 @@
+fastapi==0.135.2
+uvicorn==0.42.0
+pydantic==2.12.5
+python-multipart==0.0.26
+python-jose[cryptography]==3.5.0
+argon2-cffi==25.1.0
+jinja2==3.1.6
+openpyxl==3.1.5
+reportlab==4.4.10
+oracledb==3.4.2
+python-dotenv==1.1.0
+slowapi==0.1.9

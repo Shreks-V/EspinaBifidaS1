@@ -1,0 +1,71 @@
+# =========================
+# Sistema Operativo
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =========================
+# IDEs y Editores
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Variables de entorno
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Backend (Python / FastAPI)
+# =========================
+# Archivos compilados en bytes
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+.env/
+ENV/
+
+# Testing y dependencias
+.pytest_cache/
+.coverage
+htmlcov/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =========================
+# Frontend (Angular / Node.js)
+# =========================
+# Dependencias de Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Builds de Angular
+dist/
+out-tsc/
+
+# Caché de Angular
+.angular/
+
+# Testing
+coverage/
+
+# =========================
+# Oracle Wallet (credentials)
+# =========================
+wallet/

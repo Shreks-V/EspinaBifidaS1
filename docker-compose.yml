@@ -9,7 +9,7 @@ services:
       - .env
     volumes:
       - ./backend:/app
-      - ./wallet:/wallet:ro
+      - ./wallet:/wallet
     restart: unless-stopped
 
   frontend:

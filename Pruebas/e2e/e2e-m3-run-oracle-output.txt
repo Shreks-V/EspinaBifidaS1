@@ -1,0 +1,21 @@
+M3 E2E — detalle-beneficiario.spec.ts (BACKEND + ORACLE REAL)
+Fecha: 2026-05-01
+
+Comando:
+  E2E_BENEFICIARIOS_BACKEND=real npm run e2e:detalle:oracle
+  (equivale a npx playwright test … con esa variable)
+
+global-setup-real-beneficiarios: tomó el primer beneficiario activo de GET /api/beneficiarios tras login.
+En esta corrida: folio BEN-000001 (dato real de Oracle).
+
+Angular dev: apiUrl=/api con proxy a 127.0.0.1:8000 (evita fallo 127.0.0.1:4200 → localhost:8000).
+
+Requisitos previos:
+  - backend FastAPI en puerto 8000 (./venv/bin/python run.py desde backend/)
+  - usuario que haga login válido (demo o E2E_LOGIN_*)
+
+Running 2 tests using 1 worker
+  ✓  TC-POS-01 detalle correcto para folio existente (~1.8s)
+  ✓  TC-NEG-01 buscar folio inexistente BEN-999999 no muestra resultados (~1.3s)
+
+2 passed (~6–7s total con webServer)

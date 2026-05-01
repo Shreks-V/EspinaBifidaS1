@@ -1,0 +1,14 @@
+M3 E2E — detalle-beneficiario.spec.ts
+Fecha: 2026-04-30
+Comando: npm run e2e -- ../Pruebas/e2e/detalle-beneficiario.spec.ts --reporter=list
+Directorio: frontend/
+
+> frontend@0.0.0 e2e
+> NODE_PATH=./node_modules playwright test --config ../Pruebas/playwright.config.ts ../Pruebas/e2e/detalle-beneficiario.spec.ts --reporter=list
+
+Running 2 tests using 1 worker
+
+  ok  ../Pruebas/e2e/detalle-beneficiario.spec.ts:176:5 > TC-POS-01 detalle correcto para folio existente BEN-000003 (1.0s)
+  ok  ../Pruebas/e2e/detalle-beneficiario.spec.ts:246:5 > TC-NEG-01 buscar folio inexistente BEN-999999 no muestra resultados (1.0s)
+
+  2 passed (5.3s)

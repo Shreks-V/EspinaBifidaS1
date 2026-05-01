@@ -1,0 +1,12 @@
+SV-43 E2E — validacion-datos-beneficiario.spec.ts
+Fecha corrida: abril de 2026
+Comando: npm run e2e -- ../Pruebas/e2e/validacion-datos-beneficiario.spec.ts --reporter=list
+Directorio: frontend/
+
+Running 3 tests using 1 worker
+
+  ok  TC-POS-01 servidor acepta datos bien formados mock 200
+  ok  TC-NEG-01 HTML marca inválido si falta CURP antes de llegar al fetch
+  ok  TC-NEG-02 respuesta API 422 se pinta como mensaje en el modal
+
+  3 passed (~5.5s)

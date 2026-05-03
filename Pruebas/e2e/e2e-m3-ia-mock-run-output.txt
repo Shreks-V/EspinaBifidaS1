@@ -1,0 +1,17 @@
+M3 E2E — detalle-beneficiario-ia.spec.ts (enfoque IA / Copilot) — modo MOCK
+Fecha: 2026-05-01
+Comando: cd frontend && npm run e2e:detalle:ia
+
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+[WebServer] npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+
+Running 2 tests using 1 worker
+
+(node:24130) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show the full warning message)
+(node:24130) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show the full warning message)
+  ✓  1 ../Pruebas/e2e/detalle-beneficiario-ia.spec.ts:207:7 › SV-41 detalle por folio — enfoque IA (mismos TC que Entrega manual) › TC-POS-01 (IA) detalle correcto para folio existente (1.2s)
+  ✓  2 ../Pruebas/e2e/detalle-beneficiario-ia.spec.ts:260:7 › SV-41 detalle por folio — enfoque IA (mismos TC que Entrega manual) › TC-NEG-01 (IA) buscar folio inexistente BEN-999999 no muestra resultados (963ms)
+
+  2 passed (5.7s)

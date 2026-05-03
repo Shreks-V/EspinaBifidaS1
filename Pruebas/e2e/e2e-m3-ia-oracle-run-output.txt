@@ -1,0 +1,27 @@
+M3 E2E — detalle-beneficiario-ia.spec.ts — modo ORACLE / BACK REAL (FastAPI + BD)
+Fecha: 2026-05-01
+
+Comando:
+  E2E_BENEFICIARIOS_BACKEND=real npm run e2e:detalle:ia:oracle
+  (equivale a npx playwright test …/detalle-beneficiario-ia.spec.ts con esa variable)
+
+global-setup-real-beneficiarios.ts: login al API + GET /api/beneficiarios; folio usado en TC-POS-01:
+  usando folio real BEN-000001
+  (dato devuelto por Oracle en esta corrida; en otra BD puede variar)
+
+No hay page.route mock: el navegador usa sesión real y proxy /api → backend.
+
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+[WebServer] npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+[global-setup-real-beneficiarios] usando folio real BEN-000001
+
+Running 2 tests using 1 worker
+
+(node:25344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show the full warning message)
+(node:25344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show the full warning message)
+  ✓  1 ../Pruebas/e2e/detalle-beneficiario-ia.spec.ts:207:7 › SV-41 detalle por folio — enfoque IA (mismos TC que Entrega manual) › TC-POS-01 (IA) detalle correcto para folio existente (1.9s)
+  ✓  2 ../Pruebas/e2e/detalle-beneficiario-ia.spec.ts:260:7 › SV-41 detalle por folio — enfoque IA (mismos TC que Entrega manual) › TC-NEG-01 (IA) buscar folio inexistente BEN-999999 no muestra resultados (1.4s)
+
+  2 passed (6.9s)

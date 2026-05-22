@@ -222,6 +222,47 @@
     .leyenda-pruebas { font-size: 0.85rem; margin-top: 0.5rem; color: var(--muted); }
     .links-list { margin: 0.5rem 0 0 1.1rem; }
     .links-list li { margin: 0.4rem 0; }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+      gap: 0.65rem;
+      margin: 1rem 0;
+    }
+    .metric-card {
+      border: 1px solid var(--border);
+      padding: 0.65rem 0.75rem;
+      background: #f8fafc;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .metric-card strong {
+      display: block;
+      font-size: 1.35rem;
+      color: var(--accent);
+      margin-bottom: 0.2rem;
+    }
+    .metric-card span { font-size: 0.82rem; color: var(--muted); }
+    .evidence-fig {
+      margin: 1.25rem 0;
+      page-break-inside: avoid;
+    }
+    .evidence-fig img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .evidence-fig figcaption {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-top: 0.55rem;
+      text-align: justify;
+      line-height: 1.4;
+    }
+    .evidence-fig strong { color: var(--accent); }
     @media print {
       .matriz-pruebas thead th { position: static; }
     }
@@ -250,7 +291,7 @@
       </ul>
     </div>
     <p class="meta" style="margin-top: 1.75rem;">El cuerpo docente del curso figura en la siguiente hoja.</p>
-    <p class="footer-cover">Abril, 2026</p>
+    <p class="footer-cover">Mayo, 2026 — Sprint 2 · Qase FJ26SV · evidencias pytest</p>
   </section>
 
   <!-- Cuerpo docente -->
@@ -281,13 +322,14 @@
     <p>
       Las pruebas se ejecutan con <strong>pytest</strong> desde el repositorio del proyecto, utilizando una
       configuración <strong>integrada</strong> del código del backend (<strong>FastAPI</strong>) con módulos de prueba ubicados en
-      la carpeta <code>Pruebas/</code>. Gran parte de las validaciones se realizan contra aplicaciones mínimas
-      levantadas en memoria, con repositorios simulados, lo que permite ejecutar los casos de forma repetible en entornos de
-      integración continua o en máquinas de desarrollo sin depender de infraestructura externa.
+      las carpetas <code>Pruebas/</code> (Sprint 1, criterios SV-*) y <code>pruebas-s2/</code> (Sprint 2, HU-09 … HU-17).
+      Gran parte de las validaciones se realizan contra aplicaciones mínimas levantadas en memoria, con repositorios simulados;
+      Sprint 2 incluye además una prueba opcional de integración con Oracle (<code>EBIF_S2_USE_ORACLE=1</code>).
     </p>
     <p>
-      El alcance incluye autenticación y sesión, beneficiarios, citas, pre-registro, recibos y cobros,
-      acciones rápidas del tablero (donde aplique) y comprobaciones sobre código fuente del frontend cuando el criterio se valida mejor de forma estática.
+      El alcance incluye autenticación y sesión, beneficiarios, citas, pre-registro, recibos y cobros, acciones rápidas del tablero,
+      almacén, reportes, notificaciones, usuarios, comodatos, saldo pendiente, PDF de citas y comprobaciones sobre código fuente
+      del frontend cuando el criterio se valida mejor de forma estática.
     </p>
   </section>
 
@@ -308,11 +350,11 @@
         </tr>
         <tr>
           <th scope="row">Referencia del documento</th>
-          <td>TSR-EBIF-20260416-01</td>
+          <td>TSR-EBIF-20260515-02</td>
         </tr>
         <tr>
           <th scope="row">ID de iteración</th>
-          <td>Iteración documentación y pruebas automatizadas</td>
+          <td>Iteración documentación y pruebas automatizadas + Sprint 2</td>
         </tr>
         <tr>
           <th scope="row">Título del sistema en prueba (AUT)</th>
@@ -320,7 +362,7 @@
         </tr>
         <tr>
           <th scope="row">Fecha del documento</th>
-          <td>16 de abril de 2026</td>
+          <td>21 de mayo de 2026 (Sprint 2, Qase TestOps, evidencias pytest)</td>
         </tr>
       </tbody>
     </table>
@@ -344,7 +386,7 @@
         </tr>
         <tr>
           <td>3.</td>
-          <td>Repositorio del curso / evidencia de entrega (GitHub — proyecto ebif; ver sección 8)</td>
+          <td>Repositorio del curso / evidencia de entrega (proyecto ebif)</td>
         </tr>
       </tbody>
     </table>
@@ -362,7 +404,7 @@
         <tr><td>2</td><td>Panorama general</td></tr>
         <tr><td>3</td><td>Desviaciones</td></tr>
         <tr><td>4</td><td>Valoración</td></tr>
-        <tr><td>5</td><td>Resultados</td></tr>
+        <tr><td>5</td><td>Resultados (pytest, Qase TestOps, evidencias)</td></tr>
         <tr><td>6</td><td>Evaluación</td></tr>
         <tr><td>7</td><td>Resumen de actividades</td></tr>
         <tr><td>8</td><td>Enlaces y referencias externas</td></tr>
@@ -382,12 +424,17 @@
     <p>
       El sistema bajo prueba (AUT), EBIF, da soporte a flujos operativos de beneficiarios, citas,
       pre-registro, recibos y cobros, vistas relacionadas con inventario y acceso autenticado. Las pruebas
-      automatizadas están implementadas con <strong>pytest</strong> en el paquete <code>Pruebas/</code>, ejercitando rutas
-      FastAPI mediante repositorios en memoria cuando corresponde, de modo que no se requiere una base Oracle
-      en vivo para la mayoría de los casos. La versión del repositorio documentada aquí corresponde a la rama de
-      desarrollo utilizada para la entrega del curso (abril de 2026).
+      automatizadas están implementadas con <strong>pytest</strong> en <code>Pruebas/</code> y <code>pruebas-s2/</code>, ejercitando rutas
+      FastAPI mediante repositorios en memoria cuando corresponde. La integración Oracle en Sprint 2 es opcional
+      (<code>test_oracle_s2.py</code>). La versión documentada corresponde a la rama de desarrollo del curso (actualización mayo 2026).
     </p>
-    <h3>1.2 Estructura del informe</h3>
+    <h3>1.2 Alcance de módulos automatizados</h3>
+    <p><strong>Sprint 1 — <code>Pruebas/</code>:</strong> acceso y sesión (SV-1…6), beneficiarios (SV-7…17), pre-registro (SV-24…30),
+      citas (SV-31…35, 37), acciones rápidas (SV-38…43), recibos (SV-44…50).</p>
+    <p><strong>Sprint 2 — <code>pruebas-s2/</code>:</strong> HU-09 CURP, HU-10 almacén, HU-11 reportes, HU-12 notificaciones,
+      HU-13 usuarios, HU-14 comodato, HU-15 saldo pendiente, HU-17 PDF cita, más health check Oracle opcional.
+      <strong>Qase:</strong> mismo proyecto que Sprint 1 (<strong>FJ26SV</strong>); casos S2 en <code>pruebas-s2/qase_manifest.yaml</code>.</p>
+    <h3>1.3 Estructura del informe</h3>
     <p>El informe se organiza de la siguiente manera:</p>
     <ul>
       <li>La <strong>sección 2, Panorama general</strong>, describe los hechos y actividades relevantes de la iteración de pruebas de EBIF.</li>
@@ -396,15 +443,17 @@
       <li>La <strong>sección 5, Resultados</strong>, resume los resultados de la iteración de pruebas de EBIF e incluye la ejecución documentada de pytest.</li>
       <li>La <strong>sección 6, Evaluación</strong>, ofrece una evaluación global del proceso de pruebas, problemas y limitaciones.</li>
       <li>La <strong>sección 7</strong> resume las actividades principales y recursos empleados en la iteración.</li>
-      <li>La <strong>sección 8</strong> reúne enlaces externos (repositorio GitHub, gestión de casos en Qase, etc.).</li>
+      <li>La <strong>sección 8</strong> reúne enlaces a Qase y pytest.</li>
     </ul>
-    <h3>1.3 Referencias</h3>
+    <h3>1.4 Referencias</h3>
     <p>Documentos citados en este informe resumen de pruebas:</p>
     <ul>
-      <li>Repositorio del proyecto EBIF (GitHub), incluyendo <code>pytest.ini</code>, módulos bajo <code>Pruebas/</code> y <code>Pruebas/README.md</code>.</li>
+      <li>Este informe HTML, <code>pytest.ini</code>, carpetas <code>Pruebas/</code> y <code>pruebas-s2/</code>.</li>
+      <li>Evidencia pytest: <code>Pruebas/evidencias/ejecucion-sprint1-pytest.png</code>,
+        <code>Pruebas/evidencias/ejecucion-sprint1-sprint2-pytest.png</code>.</li>
       <li>Brief de la actividad de curso: formato de resumen de pruebas estilo NIST (Gpo. 107, abril 2026).</li>
       <li>Identificadores internos: criterios de historias de usuario referidos como SV-* en nombres de prueba y documentación.</li>
-      <li>Enlaces externos consolidados en la <strong>sección 8</strong> de este informe (GitHub, Qase, pytest).</li>
+      <li>Enlaces externos en la <strong>sección 8</strong> (Qase, pytest).</li>
     </ul>
   </section>
 
@@ -419,14 +468,12 @@
     <p>
       También delimita el alcance de las pruebas (qué se probó y qué no) y describe el entorno (hardware, software y datos).
     </p>
-    <p><strong>Alcance probado.</strong> Pruebas automatizadas a nivel de API para autenticación y sesión, beneficiarios, citas,
-      pre-registro, recibos (filtros, métodos de pago, cancelación y validaciones), y comprobaciones estáticas sobre
-      código Angular del tablero (acciones rápidas y rutas protegidas cuando aplica).</p>
-    <p><strong>Alcance no probado o parcial.</strong> Flujos de extremo a extremo en navegador (por ejemplo foco con teclado,
-      activación con Enter, contraste cromático en acciones rápidas) aparecen como omitidos o aplazados a herramientas
-      futuras (Playwright/Cypress o auditorías de accesibilidad). El comportamiento respaldado solo por procedimientos
-      almacenados en Oracle se aproxima en memoria para repetibilidad; la integración contra base en producción queda
-      fuera del alcance de esta iteración.</p>
+    <p><strong>Alcance probado.</strong> Sprint 1: API de autenticación, beneficiarios, citas, pre-registro, recibos y contrato Angular del tablero.
+      Sprint 2: almacén, reportes, notificaciones agregadas, usuarios del sistema, comodatos, cobros con saldo pendiente, PDF de cita,
+      validación CURP en DTO y health check con Oracle (opcional).</p>
+    <p><strong>Alcance no probado o parcial.</strong> E2E en navegador (SV-40…42); verificación CURP duplicada por API (HU-09, skip);
+      regresión funcional completa de Sprint 2 contra Oracle (solo <code>/api/health</code> con <code>EBIF_S2_USE_ORACLE=1</code>);
+      carga, seguridad ofensiva y cobertura de líneas como umbral de aceptación.</p>
     <div class="for-example">
       <strong>Por ejemplo</strong>
       Las pruebas de la iteración para EBIF se llevaron a cabo en abril de 2026 como parte de las entregas del curso. El
@@ -460,17 +507,31 @@
     <p>
       Breve valoración de la exhaustividad del proceso de pruebas frente a los objetivos e restricciones de la actividad.
       Cuando existan mediciones de cobertura de código, deben incluirse aquí —
-      <em>en esta iteración no se usó cobertura de líneas como umbral de aceptación; se priorizaron pruebas funcionales de API y de contrato.</em>
+      <em>no se usó cobertura de líneas como umbral de aceptación; se priorizaron pruebas funcionales de API y de contrato.</em>
     </p>
+    <h3 style="font-size:1rem;margin-top:1rem;">4.1 Porcentaje de pruebas automatizadas</h3>
+    <div class="metrics-grid" aria-label="Indicadores de automatización">
+      <div class="metric-card"><strong>100 %</strong><span>Casos con script pytest (69/69)</span></div>
+      <div class="metric-card"><strong>100 %</strong><span>Sprint 2 manifest Qase (22/22)</span></div>
+      <div class="metric-card"><strong>92,8 %</strong><span>Passed sobre total recolectado (64/69)</span></div>
+      <div class="metric-card"><strong>100 %</strong><span>Passed excl. omitidas (64/64)</span></div>
+    </div>
+    <table class="resultados-pytest" style="margin-top:0.5rem;">
+      <tbody>
+        <tr><th scope="row">Omisiones Sprint 1</th><td>3 (SV-40, SV-41, SV-42 — E2E/accesibilidad)</td></tr>
+        <tr><th scope="row">Omisiones Sprint 2</th><td>2: CURP duplicado (API pendiente) + <code>test_s2_oracle_health</code> si no defines <code>EBIF_S2_USE_ORACLE=1</code></td></tr>
+        <tr><th scope="row">Integración Oracle S2</th><td>Ejecutar: <code>EBIF_S2_USE_ORACLE=1 python -m pytest pruebas-s2/test_oracle_s2.py -q</code></td></tr>
+      </tbody>
+    </table>
     <p>
       También se identifican aspectos del AUT que no se probaron con la profundidad prevista (tiempo o recursos).
     </p>
     <div class="for-example">
       <strong>Por ejemplo</strong>
-      Se ejecutaron en el entorno de reporte todos los módulos pytest planificados bajo <code>Pruebas/</code>, con un número
-      reducido de omisiones intencionales para escenarios solo navegador. Al momento de actualizar este informe no se
-      registraron fallos bloqueantes. Las pruebas E2E contra un despliegue completo y umbrales formales de cobertura
-      siguen siendo trabajo opcional posterior.
+      Se ejecutaron los módulos bajo <code>Pruebas/</code> y <code>pruebas-s2/</code> con omisiones documentadas (E2E y API futura).
+      En la corrida de referencia (mayo 2026): <code>python -m pytest Pruebas/ pruebas-s2/ -q</code> → 64 passed, 5 skipped, 0 failed (~9,7 s).
+      Con <code>EBIF_S2_USE_ORACLE=1</code> suele ser 65 passed, 4 skipped. Las pruebas E2E en navegador y umbrales formales
+      de cobertura de código siguen siendo trabajo opcional posterior.
     </div>
   </section>
 
@@ -494,58 +555,134 @@
 
     <h3>5.1 Ejecución automatizada (pytest)</h3>
     <p>
-      Los datos siguientes corresponden a una ejecución real del conjunto de pruebas en la carpeta <code>Pruebas/</code>,
-      realizada desde la raíz del repositorio al generar esta versión del informe.
+      Datos de corrida de referencia desde la raíz del repositorio (mayo 2026), con
+      <code>backend/requirements-dev.txt</code> instalado en el entorno virtual.
     </p>
     <table class="resultados-pytest">
       <tbody>
         <tr>
-          <th scope="row">Fecha y hora de la ejecución</th>
-          <td>16 de abril de 2026 (captura al actualizar el informe; hora local del equipo que ejecutó la corrida)</td>
+          <th scope="row">Fecha de la ejecución</th>
+          <td>21 de mayo de 2026 — corrida local documentada en este informe</td>
         </tr>
         <tr>
-          <th scope="row">Comando</th>
+          <th scope="row">Comando (suite completa)</th>
           <td>
-            <pre class="cmd">python -m pytest Pruebas -q --tb=no</pre>
+            <pre class="cmd">cd /home/x3no/Documents/GitHub/ebif
+source backend/.venv/bin/activate
+python -m pytest Pruebas/ pruebas-s2/ -q</pre>
           </td>
         </tr>
         <tr>
-          <th scope="row">Resumen</th>
+          <th scope="row">Resultado documentado</th>
+          <td><strong>64</strong> passed, <strong>5</strong> skipped, <strong>0</strong> failed — <strong>69</strong> recolectadas (~9,5–10,5 s)</td>
+        </tr>
+        <tr>
+          <th scope="row">Oracle opcional</th>
           <td>
-            <strong>44</strong> pruebas correctas (<em>passed</em>),
-            <strong>3</strong> omitidas (<em>skipped</em>),
-            <strong>0</strong> fallidas (<em>failed</em>),
-            <strong>0</strong> errores de recolección o ejecución (<em>errors</em>).
-            Tiempo aproximado de la corrida: <strong>2,98 s</strong>.
-            Se reportó además <strong>1 advertencia</strong> de deprecación en la dependencia <code>slowapi</code> (no afecta el resultado de las pruebas).
+            <pre class="cmd">EBIF_S2_USE_ORACLE=1 python -m pytest pruebas-s2/test_oracle_s2.py -q</pre>
+            (suele sumar 1 passed y quitar 1 skip del total combinado)
           </td>
         </tr>
         <tr>
-          <th scope="row">Nota sobre omisiones</th>
-          <td>
-            Las <strong>3</strong> pruebas omitidas corresponden a los casos SV-40, SV-41 y SV-42 en
-            <code>Pruebas/test_acciones_rapidas.py</code> (foco/teclado/contraste), que requieren navegador u otras
-            herramientas y no se ejecutan solo con pytest sobre archivos fuente.
-          </td>
+          <th scope="row">Omisiones (5)</th>
+          <td>S1: SV-40, SV-41, SV-42. S2: CURP duplicado API; <code>test_s2_oracle_health</code> sin <code>EBIF_S2_USE_ORACLE=1</code>.</td>
         </tr>
         <tr>
-          <th scope="row">Total recolectado</th>
-          <td><strong>47</strong> pruebas según <code>python -m pytest Pruebas --collect-only -q</code> (misma cantidad de filas en la matriz 5.2).</td>
+          <th scope="row">Corrección SV-38</th>
+          <td>Fixture <code>dashboard_source</code> lee <code>.ts</code> + <code>.html</code> (navegación en plantilla Angular).</td>
+        </tr>
+        <tr>
+          <th scope="row">Qase TestOps</th>
+          <td>Proyecto único <strong>FJ26SV</strong>; publicación con <code>QASE_MODE=testops</code> + token (ver §5.1.2).</td>
         </tr>
       </tbody>
     </table>
     <p class="note" style="margin-top: 0.75rem;">
-      Para actualizar las cifras de esta sección, vuelve a ejecutar el comando anterior desde la raíz del proyecto y edita
-      la tabla con el nuevo resumen que muestre la consola (línea final de pytest).
+      Ejecutar siempre desde la raíz del repo con <code>backend/.venv</code> activado (<code>python -m pytest</code>, no <code>python3</code> del sistema).
     </p>
+
+    <h3 style="margin-top:1.25rem;">5.1.2 Qase TestOps — test runs y resultados</h3>
+    <p>
+      Sprint 1 y Sprint 2 publican en el mismo proyecto Qase
+      <a href="https://app.qase.io/run/FJ26SV">FJ26SV</a>. El plugin <code>qase-pytest</code> crea un
+      <strong>Test Run</strong> al ejecutar pytest con <code>QASE_MODE=testops</code>.
+    </p>
+    <table class="resultados-pytest">
+      <tbody>
+        <tr>
+          <th scope="row">Variables de entorno</th>
+          <td>
+            <pre class="cmd">export QASE_MODE=testops
+export QASE_TESTOPS_API_TOKEN='tu_token'
+export QASE_TESTOPS_PROJECT=FJ26SV</pre>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">Sync casos Sprint 2</th>
+          <td><pre class="cmd">python scripts/qase_sync_sprint2.py</pre>
+            Genera/actualiza casos en Qase y <code>pruebas-s2/pruebas_s2_qase_ids.json</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Publicar resultados</th>
+          <td><pre class="cmd">python -m pytest Pruebas/ pruebas-s2/ -v</pre>
+            Al terminar: enlace <code>https://app.qase.io/run/FJ26SV/dashboard/…</code> en consola.</td>
+        </tr>
+        <tr>
+          <th scope="row">Sprint 1 → casos Qase</th>
+          <td>Códigos <code>FJ26SV-1</code> … <code>FJ26SV-50</code>. Enlace opcional:
+            <code>export QASE_ID_FJ26SV_N=id_numérico</code> (N del código visible; id de la URL del caso).</td>
+        </tr>
+        <tr>
+          <th scope="row">Campo <code>layer</code></th>
+          <td>Qase solo acepta <code>api</code>, <code>e2e</code>, <code>unit</code>, <code>unknown</code> (minúsculas).
+            Corregido mayo 2026: antes <code>API</code> / <code>Contrato frontend</code> provocaban error HTTP 422 al subir resultados.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:1.5rem;">5.1.1 Evidencia de ejecución (capturas)</h3>
+    <p>
+      Capturas de pantalla de corridas reales de pytest incluidas en el repositorio bajo
+      <code>Pruebas/evidencias/</code> para respaldo de la entrega.
+    </p>
+
+    <figure class="evidence-fig" id="evidencia-sprint1">
+      <img src="evidencias/ejecucion-sprint1-pytest.png" alt="Terminal pytest Sprint 1: 47 passed en 14.55s" width="900" />
+      <figcaption>
+        <strong>Imagen 1 — Sprint 1.</strong> Ejecución de la carpeta <code>Pruebas/</code> con
+        <code>python -m pytest</code> (entorno de referencia del equipo: macOS, Python 3.14, pytest 8.0.3).
+        Resultado: <strong>47 passed in 14.55s</strong>, 0 failed. Módulos visibles:
+        <code>test_acceso_sesion</code>, <code>test_acciones_rapidas</code>, <code>test_beneficiarios</code>,
+        <code>test_citas</code>, <code>test_preregistro</code>, <code>test_recibos</code>.
+      </figcaption>
+    </figure>
+
+    <figure class="evidence-fig" id="evidencia-sprint2">
+      <img src="evidencias/ejecucion-sprint1-sprint2-pytest.png" alt="Terminal pytest Sprint 1+2: 64 passed, 5 skipped" width="900" />
+      <figcaption>
+        <strong>Imagen 2 — Sprint 1 + Sprint 2 (repositorio actual).</strong> Ejecución desde
+        <code>/home/x3no/Documents/GitHub/ebif</code> con venv en <code>backend/.venv</code> y comando
+        <code>python -m pytest Pruebas/ pruebas-s2/ -q</code> (Linux, Python 3.12.3, pytest 8.4.2).
+        Resultado: <strong>64 passed, 5 skipped in 9.53s</strong>, 0 failed. Los caracteres <code>s</code> en la barra de progreso
+        corresponden a omisiones documentadas (E2E SV-40…42, CURP duplicado, Oracle sin <code>EBIF_S2_USE_ORACLE=1</code>).
+      </figcaption>
+    </figure>
+
+    <figure class="evidence-fig" id="evidencia-oracle">
+      <figcaption style="margin-bottom:0.5rem;">
+        <strong>Integración Oracle (complemento Sprint 2).</strong> Comando:
+        <code>EBIF_S2_USE_ORACLE=1 python -m pytest pruebas-s2/test_oracle_s2.py -v</code> —
+        <code>test_s2_oracle_health PASSED</code> (evidencia en consola del equipo; no capturada en imagen).
+      </figcaption>
+    </figure>
   </section>
 
   <section class="sheet sec-body" aria-label="Matriz de pruebas EBIF">
     <p style="margin:0 0 0.5rem;font-size:0.9rem;color:var(--muted);"><strong>Sección 5 (continuación)</strong> — inventario de casos pytest</p>
     <h3>5.2 Matriz de pruebas automatizadas (detalle)</h3>
     <p class="leyenda-pruebas">
-      Leyenda: <strong>✓</strong> ejecutada correctamente (passed) · <strong>⊘</strong> omitida (skipped) ·
-      <strong>✗</strong> reservado para fallo (failed). Total de ítems recolectados: <strong>47</strong>.
+      Leyenda: <strong>✓</strong> passed · <strong>⊘</strong> skipped · <strong>✗</strong> failed.
+      Matriz 5.2 — Sprint 1: <strong>47</strong> ítems. Matriz 5.3 — Sprint 2: <strong>22</strong> ítems. Total: <strong>69</strong>.
     </p>
     <table class="matriz-pruebas">
       <thead>
@@ -606,6 +743,44 @@
         <tr><td>—</td><td><code>test_stats_y_metodos_pago_disponibles</code></td><td><code>test_recibos.py</code></td><td>✓</td></tr>
       </tbody>
     </table>
+
+    <h3 style="margin-top:1.5rem;">5.3 Matriz Sprint 2 — <code>pruebas-s2/</code> (HU-09 … HU-17)</h3>
+    <p class="leyenda-pruebas">Proyecto Qase <strong>FJ26SV</strong>. <code>hu_s2_oracle_health</code> requiere <code>EBIF_S2_USE_ORACLE=1</code>.</p>
+    <table class="matriz-pruebas">
+      <thead>
+        <tr>
+          <th scope="col">HU / ref.</th>
+          <th scope="col">Función de prueba</th>
+          <th scope="col">Archivo</th>
+          <th scope="col">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>HU-09</td><td><code>test_hu09_curp_formato_oficial_valido</code></td><td><code>test_hu09_curp.py</code></td><td>✓</td></tr>
+        <tr><td>HU-09</td><td><code>test_hu09_curp_formato_invalido_rechazado</code></td><td><code>test_hu09_curp.py</code></td><td>✓</td></tr>
+        <tr><td>HU-09</td><td><code>test_hu09_verificacion_curp_duplicado_endpoint_pendiente</code></td><td><code>test_hu09_curp.py</code></td><td>⊘</td></tr>
+        <tr><td>HU-10</td><td><code>test_hu10_listar_productos</code></td><td><code>test_hu10_almacen.py</code></td><td>✓</td></tr>
+        <tr><td>HU-10</td><td><code>test_hu10_stats</code></td><td><code>test_hu10_almacen.py</code></td><td>✓</td></tr>
+        <tr><td>HU-10</td><td><code>test_hu10_crear_producto_encargado</code></td><td><code>test_hu10_almacen.py</code></td><td>✓</td></tr>
+        <tr><td>HU-10</td><td><code>test_hu10_listar_servicios</code></td><td><code>test_hu10_almacen.py</code></td><td>✓</td></tr>
+        <tr><td>HU-11</td><td><code>test_hu11_reporte_resumen</code></td><td><code>test_hu11_reportes.py</code></td><td>✓</td></tr>
+        <tr><td>HU-11</td><td><code>test_hu11_exportar_reporte_pdf</code></td><td><code>test_hu11_reportes.py</code></td><td>✓</td></tr>
+        <tr><td>HU-12</td><td><code>test_hu12_notificaciones_lista</code></td><td><code>test_hu12_notificaciones.py</code></td><td>✓</td></tr>
+        <tr><td>HU-12</td><td><code>test_hu12_notificaciones_con_alertas</code></td><td><code>test_hu12_notificaciones.py</code></td><td>✓</td></tr>
+        <tr><td>HU-13</td><td><code>test_hu13_listar_usuarios</code></td><td><code>test_hu13_usuarios.py</code></td><td>✓</td></tr>
+        <tr><td>HU-13</td><td><code>test_hu13_crear_usuario</code></td><td><code>test_hu13_usuarios.py</code></td><td>✓</td></tr>
+        <tr><td>HU-13</td><td><code>test_hu13_config_publica</code></td><td><code>test_hu13_usuarios.py</code></td><td>✓</td></tr>
+        <tr><td>HU-14</td><td><code>test_hu14_listar_comodatos</code></td><td><code>test_hu14_comodato.py</code></td><td>✓</td></tr>
+        <tr><td>HU-14</td><td><code>test_hu14_crear_comodato</code></td><td><code>test_hu14_comodato.py</code></td><td>✓</td></tr>
+        <tr><td>HU-14</td><td><code>test_hu14_contrato_comodato_pdf</code></td><td><code>test_hu14_comodato.py</code></td><td>✓</td></tr>
+        <tr><td>HU-15</td><td><code>test_hu15_cobro_parcial_saldo_pendiente</code></td><td><code>test_hu15_saldo_pendiente.py</code></td><td>✓</td></tr>
+        <tr><td>HU-15</td><td><code>test_hu15_cobro_completo_saldo_cero</code></td><td><code>test_hu15_saldo_pendiente.py</code></td><td>✓</td></tr>
+        <tr><td>HU-17</td><td><code>test_hu17_comprobante_cita_pdf</code></td><td><code>test_hu17_pdf_cita.py</code></td><td>✓</td></tr>
+        <tr><td>HU-17</td><td><code>test_hu17_comprobante_cita_inexistente</code></td><td><code>test_hu17_pdf_cita.py</code></td><td>✓</td></tr>
+        <tr><td>Oracle S2</td><td><code>test_s2_oracle_health</code></td><td><code>test_oracle_s2.py</code></td><td>✓*</td></tr>
+      </tbody>
+    </table>
+    <p class="note">* Con variables Oracle y wallet configurados.</p>
   </section>
 
   <!-- Sección 6 -->
@@ -660,23 +835,12 @@
   <!-- Sección 8: Enlaces -->
   <section class="sheet sec-body" aria-label="Enlaces externos">
     <h2>8 Enlaces y referencias externas</h2>
-    <p>
-      Recursos en línea relacionados con el código, la gestión de pruebas y la documentación del proyecto. Sustituye las URLs marcadas como pendientes si tu organización usa otras rutas.
-    </p>
+    <p>Gestión de pruebas en Qase (proyecto <strong>FJ26SV</strong>, Sprint 1 y Sprint 2) y referencia de pytest.</p>
     <ul class="links-list">
       <li>
-        <strong>Repositorio GitHub (código EBIF):</strong>
-        <a href="https://github.com/Nugzy/ebif">https://github.com/Nugzy/ebif</a>
-        <span class="note" style="display:inline;font-style:normal"> — ajusta usuario u organización si el remoto difiere.</span>
-      </li>
-      <li>
-        <strong>Guía para ejecutar pruebas en local:</strong>
-        <a href="https://github.com/Nugzy/ebif/blob/main/Pruebas/README.md">Pruebas/README.md</a> (vista en GitHub; misma ruta en el clon).
-      </li>
-      <li>
-        <strong>Qase (gestión de casos / test management):</strong>
-        <a href="https://app.qase.io/project/EBIF">https://app.qase.io/project/EBIF</a>
-        <span class="note" style="display:inline;font-style:normal"> — enlace ilustrativo; crea o enlaza tu proyecto real en Qase y reemplaza la URL.</span>
+        <strong>Qase — test runs (FJ26SV):</strong>
+        <a href="https://app.qase.io/run/FJ26SV">https://app.qase.io/run/FJ26SV</a>
+        (cada <code>python -m pytest</code> con <code>QASE_MODE=testops</code> publica un run nuevo)
       </li>
       <li>
         <strong>Documentación pytest:</strong>

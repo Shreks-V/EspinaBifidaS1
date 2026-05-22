@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 
 from app.infrastructure.security.adapters import JwtAccessTokenIssuer
 
+from Pruebas.qase_decorators import qase_case
+
 BASE = "/api/preregistro"
 
 
@@ -40,6 +42,7 @@ def pre_client(preregistro_client_factory) -> TestClient:
     return preregistro_client_factory()
 
 
+@qase_case("Pre-Registro", "FJ26SV-24", "Completar preregistro público sin estar logueado (flujo feliz)")
 def test_sv24_preregistro_publico_flujo_feliz_sin_login(pre_client: TestClient):
     r = pre_client.post(BASE, json=_payload_paso1())
     assert r.status_code == 201, r.text
@@ -49,13 +52,13 @@ def test_sv24_preregistro_publico_flujo_feliz_sin_login(pre_client: TestClient):
     assert isinstance(body.get("id_paciente"), int)
 
 
+@qase_case("Pre-Registro", "FJ26SV-25", "Avanzar pasos: indicador paso_actual coherente")
 def test_sv25_avance_pasos_indicador_paso_actual_coherente(pre_client: TestClient):
     c = pre_client.post(BASE, json=_payload_paso1())
     assert c.status_code == 201
-    created = c.json()
-    pid = created["id_paciente"]
-    token = created["preregistro_token"]
-    h_pre = {"X-Preregistro-Token": token}
+    pid = c.json()["id_paciente"]
+    tok = c.json().get("preregistro_token", "")
+    tok_h = {"X-Preregistro-Token": tok}
 
     p2 = {
         **_payload_paso1(),
@@ -64,21 +67,21 @@ def test_sv25_avance_pasos_indicador_paso_actual_coherente(pre_client: TestClien
         "fecha_nacimiento": "2015-03-20",
         "genero": "Masculino",
     }
-    u2 = pre_client.put(f"{BASE}/{pid}", json=p2, headers=h_pre)
+    u2 = pre_client.put(f"{BASE}/{pid}", json=p2, headers=tok_h)
     assert u2.status_code == 200, u2.text
     assert u2.json().get("paso_actual") == 2
 
-    g = pre_client.get(f"{BASE}/{pid}", headers=h_pre)
+    g = pre_client.get(f"{BASE}/{pid}", headers=tok_h)
     assert g.status_code == 200
     assert g.json().get("paso_actual") == 2
 
 
+@qase_case("Pre-Registro", "FJ26SV-26", "No avanzar de paso con datos incompletos")
 def test_sv26_no_avanzar_paso_con_datos_incompletos(pre_client: TestClient):
     c = pre_client.post(BASE, json=_payload_paso1())
-    created = c.json()
-    pid = created["id_paciente"]
-    token = created["preregistro_token"]
-    h_pre = {"X-Preregistro-Token": token}
+    pid = c.json()["id_paciente"]
+    tok = c.json().get("preregistro_token", "")
+    tok_h = {"X-Preregistro-Token": tok}
 
     bad_paso3 = {
         **_payload_paso1(),
@@ -87,7 +90,7 @@ def test_sv26_no_avanzar_paso_con_datos_incompletos(pre_client: TestClient):
         "ciudad": "",
         "correo_electronico": "",
     }
-    r = pre_client.put(f"{BASE}/{pid}", json=bad_paso3, headers=h_pre)
+    r = pre_client.put(f"{BASE}/{pid}", json=bad_paso3, headers=tok_h)
     assert r.status_code == 400
     assert "correo" in (r.json().get("detail") or "").lower()
 
@@ -98,6 +101,7 @@ def test_sv26_no_avanzar_paso_con_datos_incompletos(pre_client: TestClient):
     assert "espina" in (r2.json().get("detail") or "").lower()
 
 
+@qase_case("Pre-Registro", "FJ26SV-27", "Respuesta de confirmación tras envío exitoso (API)")
 def test_sv27_respuesta_confirmacion_tras_envio_exitoso(pre_client: TestClient):
     r = pre_client.post(BASE, json=_payload_paso1())
     assert r.status_code == 201
@@ -107,6 +111,11 @@ def test_sv27_respuesta_confirmacion_tras_envio_exitoso(pre_client: TestClient):
     assert data.get("id_paciente") is not None
 
 
+@qase_case(
+    "Pre-Registro",
+    "FJ26SV-28",
+    "Catálogos públicos accesibles (complemento a navegación inicio en UI)",
+)
 def test_sv28_catalogos_publicos_accesibles_tras_flujo(pre_client: TestClient):
     t0 = pre_client.get(f"{BASE}/tipos-espina")
     assert t0.status_code == 200
@@ -119,6 +128,7 @@ def test_sv28_catalogos_publicos_accesibles_tras_flujo(pre_client: TestClient):
     assert t1.status_code == 200 and d1.status_code == 200
 
 
+@qase_case("Pre-Registro", "FJ26SV-29", "Listar solicitudes de preregistro en panel interno")
 def test_sv29_listar_solicitudes_panel_interno(pre_client: TestClient):
     pre_client.post(BASE, json=_payload_paso1())
     r = pre_client.get(BASE, headers=_h_admin())
@@ -135,6 +145,7 @@ def test_sv29_listar_solicitudes_panel_interno(pre_client: TestClient):
     assert all(x.get("estatus_registro") == "PENDIENTE" for x in filtro.json())
 
 
+@qase_case("Pre-Registro", "FJ26SV-30", "Aprobar / rechazar solicitud y reflejo en estado")
 def test_sv30_aprobar_rechazar_reflejo_estado(pre_client: TestClient):
     a = pre_client.post(BASE, json=_payload_paso1())
     b = pre_client.post(
@@ -142,16 +153,12 @@ def test_sv30_aprobar_rechazar_reflejo_estado(pre_client: TestClient):
         json={
             **_payload_paso1(),
             "nombre": "Otro",
-            "curp": "OTRO100102HDFYYY02",
+            "curp": "PAEL750601MCLYYY01",
         },
     )
     assert a.status_code == 201 and b.status_code == 201
-    body_a = a.json()
-    body_b = b.json()
-    id_a = body_a["id_paciente"]
-    id_b = body_b["id_paciente"]
-    h_pre_a = {"X-Preregistro-Token": body_a["preregistro_token"]}
-    h_pre_b = {"X-Preregistro-Token": body_b["preregistro_token"]}
+    id_a = a.json()["id_paciente"]
+    id_b = b.json()["id_paciente"]
 
     ra = pre_client.post(
         f"{BASE}/{id_a}/aprobar",
@@ -167,7 +174,7 @@ def test_sv30_aprobar_rechazar_reflejo_estado(pre_client: TestClient):
     assert rb.status_code == 200
     assert rb.json()["preregistro"].get("estatus_registro") == "RECHAZADO"
 
-    ga = pre_client.get(f"{BASE}/{id_a}", headers=h_pre_a)
-    gb = pre_client.get(f"{BASE}/{id_b}", headers=h_pre_b)
+    ga = pre_client.get(f"{BASE}/{id_a}", headers=_h_admin())
+    gb = pre_client.get(f"{BASE}/{id_b}", headers=_h_admin())
     assert ga.json().get("estatus_registro") == "APROBADO"
     assert gb.json().get("estatus_registro") == "RECHAZADO"

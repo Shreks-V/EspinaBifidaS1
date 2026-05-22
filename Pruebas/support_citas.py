@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from app.schemas.schemas import CitaCreate
+from app.presentation.api.schemas import CitaCreate
 
 
 def _fecha_iso_dia(fecha_hora: str) -> str:
@@ -139,7 +139,7 @@ class InMemoryCitasRepository:
                     filt.append(r)
             rows = filt
         rows.sort(key=lambda x: str(x.get("fecha_hora") or ""), reverse=True)
-        return rows[offset : offset + limit]
+        return rows
 
     def obtener_cita(self, id_cita: int, current_user: dict | None = None) -> dict[str, Any]:
         del current_user

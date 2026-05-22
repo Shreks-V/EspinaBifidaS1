@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 from fastapi import HTTPException
 
-from app.schemas.schemas import VentaCreate
+from app.presentation.api.schemas import VentaCreate
 
 from Pruebas.support_beneficiarios import default_seed_patients
 
@@ -174,7 +174,6 @@ class InMemoryRecibosRepository:
         limit: int = 100,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
-        del current_user
         rows = list(self._ventas.values())
         filtered: list[dict[str, Any]] = []
         for v in rows:
@@ -193,8 +192,7 @@ class InMemoryRecibosRepository:
                     continue
             filtered.append(v)
         filtered.sort(key=lambda x: str(x.get("fecha_venta") or ""), reverse=True)
-        paged = filtered[offset : offset + limit]
-        return [self._public_row(v) for v in paged]
+        return [self._public_row(v) for v in filtered]
 
     def obtener_venta(self, id_venta: int, current_user: dict | None = None) -> dict[str, Any]:
         row = self._ventas.get(int(id_venta))

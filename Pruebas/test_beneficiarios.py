@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 
 from app.infrastructure.security.adapters import JwtAccessTokenIssuer
 
+from Pruebas.qase_decorators import qase_case
+
 BASE = "/api/beneficiarios"
 
 
@@ -49,6 +51,7 @@ def ben_client(beneficiarios_client_factory) -> TestClient:
     return beneficiarios_client_factory()
 
 
+@qase_case("Beneficiarios", "FJ26SV-7", "CP-02-01 Listar beneficiarios (sin filtros)")
 def test_sv7_listar_sin_filtros(ben_client: TestClient):
     r = ben_client.get(BASE, headers=_h_recep())
     assert r.status_code == 200
@@ -59,6 +62,7 @@ def test_sv7_listar_sin_filtros(ben_client: TestClient):
     assert folios == {"BEN-000001", "BEN-000002", "BEN-000003"}
 
 
+@qase_case("Beneficiarios", "FJ26SV-8", "CP-02-02 Filtrar por criterios")
 def test_sv8_filtrar_por_criterios(ben_client: TestClient):
     h = _h_recep()
 
@@ -82,6 +86,7 @@ def test_sv8_filtrar_por_criterios(ben_client: TestClient):
     assert r_nom.json()[0]["folio"] == "BEN-000002"
 
 
+@qase_case("Beneficiarios", "FJ26SV-9", "CP-02-03 Alta con datos mínimos obligatorios")
 def test_sv9_alta_datos_minimos(ben_client: TestClient):
     body = {
         "nombre": "Pedro",
@@ -98,6 +103,7 @@ def test_sv9_alta_datos_minimos(ben_client: TestClient):
     assert isinstance(row["id_paciente"], int)
 
 
+@qase_case("Beneficiarios", "FJ26SV-10", "CP-02-04 Alta con datos completos (HU)")
 def test_sv10_alta_datos_completos(ben_client: TestClient):
     body = {
         "nombre": "Luisa",
@@ -139,6 +145,7 @@ def test_sv10_alta_datos_completos(ben_client: TestClient):
     assert ids == {1, 2}
 
 
+@qase_case("Beneficiarios", "FJ26SV-11", "CP-02-05 Edición y persistencia de cambios")
 def test_sv11_edicion_y_persistencia(ben_client: TestClient):
     h = _h_recep()
     folio = "BEN-000001"
@@ -167,11 +174,13 @@ def test_sv11_edicion_y_persistencia(ben_client: TestClient):
     assert r_get.json()["curp"] == curp
 
 
+@qase_case("Beneficiarios", "FJ26SV-12", "CP-02-06 Validación: campos obligatorios vacíos")
 def test_sv12_validacion_campos_obligatorios_vacios(ben_client: TestClient):
     r = ben_client.post(BASE, json={"nombre": "X"}, headers=_h_recep())
     assert r.status_code == 422
 
 
+@qase_case("Beneficiarios", "FJ26SV-13", "CP-02-07 Validación: formatos inválidos")
 def test_sv13_validacion_formatos_invalidos(ben_client: TestClient):
     h = _h_recep()
 
@@ -207,6 +216,7 @@ def test_sv13_validacion_formatos_invalidos(ben_client: TestClient):
     assert r_date.status_code == 422
 
 
+@qase_case("Beneficiarios", "FJ26SV-14", "CP-02-08 Detalle de beneficiario por folio")
 def test_sv14_detalle_por_folio(ben_client: TestClient):
     h = _h_recep()
     ok = ben_client.get(f"{BASE}/BEN-000003", headers=h)
@@ -218,6 +228,7 @@ def test_sv14_detalle_por_folio(ben_client: TestClient):
     assert missing.json().get("detail") == "Beneficiario no encontrado"
 
 
+@qase_case("Beneficiarios", "FJ26SV-15", "CP-02-09 Historial del beneficiario")
 def test_sv15_historial_beneficiario(ben_client: TestClient):
     h = _h_recep()
     r = ben_client.get(f"{BASE}/BEN-000001/historial", headers=h)
@@ -231,6 +242,7 @@ def test_sv15_historial_beneficiario(ben_client: TestClient):
     assert len(data["citas"]) >= 1
 
 
+@qase_case("Beneficiarios", "FJ26SV-16", "CP-02-10 Eliminación o baja lógica")
 def test_sv16_eliminacion_baja_logica(ben_client: TestClient):
     folio = "BEN-000002"
     r_del = ben_client.delete(f"{BASE}/{folio}", headers=_h_adm())
@@ -247,6 +259,7 @@ def test_sv16_eliminacion_baja_logica(ben_client: TestClient):
     assert detail.json().get("activo") == "N"
 
 
+@qase_case("Beneficiarios", "FJ26SV-17", "CP-02-11 Estadísticas coherentes con datos de prueba")
 def test_sv17_estadisticas_coherentes(ben_client: TestClient):
     h = _h_recep()
     stats = ben_client.get(f"{BASE}/stats", headers=h)

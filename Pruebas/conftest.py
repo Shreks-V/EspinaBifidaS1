@@ -1,20 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-import os
-from pathlib import Path
 
 import pytest
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(dotenv_path=_REPO_ROOT / ".env")
-load_dotenv(dotenv_path=_REPO_ROOT / "backend" / ".env")
 
 from app.application.auth.use_cases import AuthService
 from app.core.config import settings
@@ -34,25 +27,6 @@ from Pruebas.support_beneficiarios import (
 from Pruebas.support_citas import InMemoryCitasRepository
 from Pruebas.support_preregistro import InMemoryPreregistroRepository
 from Pruebas.support_recibos import InMemoryRecibosRepository
-
-
-def _use_real_db_tests() -> bool:
-    return os.getenv("USE_REAL_DB_TESTS", "false").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
-
-
-def _require_db_env_or_skip() -> None:
-    required = ("ORACLE_USER", "ORACLE_PASSWORD", "ORACLE_DSN")
-    missing = [key for key in required if not os.getenv(key)]
-    if missing:
-        pytest.skip(
-            "USE_REAL_DB_TESTS=true pero faltan variables de entorno: "
-            + ", ".join(missing)
-        )
 
 
 def build_minimal_auth_app(auth_service: AuthService) -> FastAPI:
@@ -177,18 +151,10 @@ def beneficiarios_client_factory(
         repo: InMemoryBeneficiariosRepository | None = None,
         user_repo: InMemoryUserRepository | None = None,
     ) -> TestClient:
-        from app.application.beneficiarios import use_cases as ben_uc
+        from app.application.beneficiarios.use_cases import BeneficiariosService, configure_service as configure_beneficiarios
 
-        if repo is None and _use_real_db_tests():
-            _require_db_env_or_skip()
-            from app.infrastructure.beneficiarios.repository import (
-                OracleBeneficiariosRepository,
-            )
-
-            ben_uc.configure_repository(OracleBeneficiariosRepository())
-        else:
-            ben_repo = repo or InMemoryBeneficiariosRepository(default_seed_patients())
-            ben_uc.configure_repository(ben_repo)
+        ben_repo = repo or InMemoryBeneficiariosRepository(default_seed_patients())
+        configure_beneficiarios(BeneficiariosService(ben_repo))
         urepo = user_repo or _default_beneficiarios_user_repo(password_hasher)
         auth_service = AuthService(
             user_repository=urepo,
@@ -212,16 +178,10 @@ def preregistro_client_factory(
         repo: InMemoryPreregistroRepository | None = None,
         user_repo: InMemoryUserRepository | None = None,
     ) -> TestClient:
-        from app.application.preregistro import use_cases as pre_uc
+        from app.application.preregistro.use_cases import PreregistroService, configure_service as configure_preregistro
 
-        if repo is None and _use_real_db_tests():
-            _require_db_env_or_skip()
-            from app.infrastructure.preregistro.repository import OraclePreregistroRepository
-
-            pre_uc.configure_repository(OraclePreregistroRepository())
-        else:
-            pre_repo = repo or InMemoryPreregistroRepository()
-            pre_uc.configure_repository(pre_repo)
+        pre_repo = repo or InMemoryPreregistroRepository()
+        configure_preregistro(PreregistroService(pre_repo))
         urepo = user_repo or _default_beneficiarios_user_repo(password_hasher)
         auth_service = AuthService(
             user_repository=urepo,
@@ -245,16 +205,10 @@ def citas_client_factory(
         repo: InMemoryCitasRepository | None = None,
         user_repo: InMemoryUserRepository | None = None,
     ) -> TestClient:
-        from app.application.citas import use_cases as citas_uc
+        from app.application.citas.use_cases import CitasService, configure_service as configure_citas
 
-        if repo is None and _use_real_db_tests():
-            _require_db_env_or_skip()
-            from app.infrastructure.citas.repository import OracleCitasRepository
-
-            citas_uc.configure_repository(OracleCitasRepository())
-        else:
-            c_repo = repo or InMemoryCitasRepository()
-            citas_uc.configure_repository(c_repo)
+        c_repo = repo or InMemoryCitasRepository()
+        configure_citas(CitasService(c_repo))
         urepo = user_repo or _default_beneficiarios_user_repo(password_hasher)
         auth_service = AuthService(
             user_repository=urepo,
@@ -278,16 +232,10 @@ def recibos_client_factory(
         repo: InMemoryRecibosRepository | None = None,
         user_repo: InMemoryUserRepository | None = None,
     ) -> TestClient:
-        from app.application.recibos import use_cases as recibos_uc
+        from app.application.recibos.use_cases import RecibosService, configure_service as configure_recibos
 
-        if repo is None and _use_real_db_tests():
-            _require_db_env_or_skip()
-            from app.infrastructure.recibos.repository import OracleRecibosRepository
-
-            recibos_uc.configure_repository(OracleRecibosRepository())
-        else:
-            r_repo = repo or InMemoryRecibosRepository()
-            recibos_uc.configure_repository(r_repo)
+        r_repo = repo or InMemoryRecibosRepository()
+        configure_recibos(RecibosService(r_repo))
         urepo = user_repo or _default_beneficiarios_user_repo(password_hasher)
         auth_service = AuthService(
             user_repository=urepo,

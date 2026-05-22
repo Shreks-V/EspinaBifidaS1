@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.infrastructure.security.adapters import JwtAccessTokenIssuer
 
+from Pruebas.qase_decorators import qase_case
 from Pruebas.support_citas import InMemoryCitasRepository, seed_cita_hoy
 
 BASE = "/api/citas"
@@ -35,6 +36,7 @@ def cita_client(citas_client_factory) -> TestClient:
     return citas_client_factory()
 
 
+@qase_case("Citas y agenda", "FJ26SV-37", "Citas del día vacías: sin error de sistema")
 def test_sv37_citas_hoy_vacias_sin_error(citas_client_factory):
     client = citas_client_factory(InMemoryCitasRepository())
     r = client.get(f"{BASE}/hoy", headers=_h_recep())
@@ -45,6 +47,7 @@ def test_sv37_citas_hoy_vacias_sin_error(citas_client_factory):
     assert data["fecha"] == date.today().isoformat()
 
 
+@qase_case("Citas y agenda", "FJ26SV-31", "Visualizar citas del día")
 def test_sv31_visualizar_citas_del_dia(citas_client_factory):
     seed = [seed_cita_hoy(id_cita=1, hora="09:00:00"), seed_cita_hoy(id_cita=2, hora="15:30:00")]
     client = citas_client_factory(InMemoryCitasRepository(seed_citas=seed))
@@ -56,6 +59,7 @@ def test_sv31_visualizar_citas_del_dia(citas_client_factory):
     assert body["programadas"] == 2
 
 
+@qase_case("Citas y agenda", "FJ26SV-32", "Crear cita para el día actual con datos válidos")
 def test_sv32_crear_cita_dia_actual_datos_validos(cita_client: TestClient):
     body = {
         "id_paciente": 1,
@@ -72,6 +76,7 @@ def test_sv32_crear_cita_dia_actual_datos_validos(cita_client: TestClient):
     assert _hoy_iso_t(14, 30)[:10] in str(row.get("fecha_hora", ""))
 
 
+@qase_case("Citas y agenda", "FJ26SV-33", "Marcar cita como completada y ver estado actualizado")
 def test_sv33_completar_cita_estado_actualizado(cita_client: TestClient):
     body = {
         "id_paciente": 1,
@@ -88,6 +93,7 @@ def test_sv33_completar_cita_estado_actualizado(cita_client: TestClient):
     assert g.json().get("estatus") == "COMPLETADA"
 
 
+@qase_case("Citas y agenda", "FJ26SV-34", "Cancelar cita y ver motivo o estado")
 def test_sv34_cancelar_cita_motivo_o_estado(cita_client: TestClient):
     body = {
         "id_paciente": 1,
@@ -104,6 +110,7 @@ def test_sv34_cancelar_cita_motivo_o_estado(cita_client: TestClient):
     assert cita_client.get(f"{BASE}/{cid}", headers=_h_recep()).json().get("estatus") == "CANCELADA"
 
 
+@qase_case("Citas y agenda", "FJ26SV-35", "Filtros de citas (fecha, estatus, paciente, búsqueda)")
 def test_sv35_filtros_listado_citas(citas_client_factory):
     manana = (date.today() + timedelta(days=1)).isoformat()
     seed = [

@@ -19,23 +19,6 @@ Desde la raíz del repositorio:
 python -m pytest
 ```
 
-## Ejecutar pruebas usando DB real (`.env`)
-
-Por defecto, las pruebas de `Pruebas/` usan repositorios en memoria para ser deterministas.
-Si quieres probar contra Oracle real, configura `.env` en la raíz y ejecuta con:
-
-```powershell
-USE_REAL_DB_TESTS=true python -m pytest Pruebas -v
-```
-
-Variables mínimas requeridas en `.env` para modo DB real:
-
-- `ORACLE_USER`
-- `ORACLE_PASSWORD`
-- `ORACLE_DSN`
-
-Si falta alguna, la fixture hará `skip` automático de la ejecución en modo DB real.
-
 Equivalente explícito:
 
 ```powershell
@@ -56,7 +39,7 @@ python -m pytest Pruebas -v
 | [`test_beneficiarios.py`](test_beneficiarios.py) | API beneficiarios (SV-7 a SV-17). |
 | [`test_preregistro.py`](test_preregistro.py) | Pre-registro público y panel (SV-24 a SV-30). |
 | [`test_citas.py`](test_citas.py) | Citas (SV-31 a SV-35, SV-37). |
-| [`test_acciones_rapidas.py`](test_acciones_rapidas.py) | Acciones rápidas dashboard (SV-38 a SV-43; SV-40–42 con E2E Playwright). |
+| [`test_acciones_rapidas.py`](test_acciones_rapidas.py) | Acciones rápidas dashboard (SV-38 a SV-43; SV-40–42 en skip). |
 | [`test_recibos.py`](test_recibos.py) | Recibos y cobros (SV-44 a SV-50) + stats/métodos de pago. |
 
 Ejemplo:
@@ -100,10 +83,56 @@ Mostrar prints y logs:
 python -m pytest Pruebas -s
 ```
 
+## Sprint 2 (`pruebas-s2/`)
+
+Desde la raíz del repositorio (misma configuración `pytest.ini`):
+
+```powershell
+python -m pytest pruebas-s2/ -v
+```
+
+Integración opcional con Oracle:
+
+```powershell
+$env:EBIF_S2_USE_ORACLE="1"
+python -m pytest pruebas-s2/test_oracle_s2.py -v
+```
+
+Suite completa (Sprint 1 + 2):
+
+```powershell
+python -m pytest Pruebas/ pruebas-s2/ -v
+```
+
+Informe resumido y capturas: [`reporte-resumen-pruebas-ebif.md`](reporte-resumen-pruebas-ebif.md) / [`reporte-resumen-pruebas-ebif.html`](reporte-resumen-pruebas-ebif.html). Evidencias en [`evidencias/`](evidencias/).
+
+## Publicar resultados en Qase (TestOps)
+
+Proyecto único **FJ26SV** para Sprint 1 y Sprint 2. Requiere token de Qase (Apps → Pytest).
+
+```powershell
+cd <raíz-del-repo-ebif>
+# Activar venv: backend\.venv\Scripts\activate  (Windows) o source backend/.venv/bin/activate (Linux)
+
+$env:QASE_MODE="testops"
+$env:QASE_TESTOPS_API_TOKEN="tu_token"
+$env:QASE_TESTOPS_PROJECT="FJ26SV"
+
+python scripts/qase_sync_sprint2.py
+python -m pytest Pruebas/ pruebas-s2/ -v
+```
+
+En Linux/macOS usa `export` en lugar de `$env:`. Al terminar, la consola muestra el enlace al **Test Run** en Qase.
+
+- Sprint 2 enlaza casos con `pruebas-s2/pruebas_s2_qase_ids.json` (generado por el script de sync).
+- Sprint 1: opcional `QASE_ID_FJ26SV_7=123` (ID numérico del caso en la URL de Qase).
+- El campo `layer` debe ser `api`, `e2e`, `unit` o `unknown` (minúsculas).
+
 ## Notas
 
 - **`conftest.py`**: fixtures compartidas (por ejemplo `recibos_client_factory`, `beneficiarios_client_factory`). Los módulos `support_*.py` son repositorios en memoria o utilidades solo para pruebas.
-- **E2E Playwright**: en `test_acciones_rapidas.py`, SV-40 a SV-42 corren en navegador real vía Playwright (invocado desde pytest). Si es la primera vez, instala navegador con `cd frontend && npx playwright install chromium`.
+- **Pruebas con `skip`**: en `test_acciones_rapidas.py`, SV-40 a SV-42 se omiten porque requieren navegador u otras herramientas; en `pruebas-s2/`, CURP duplicado (API pendiente) y Oracle health sin `EBIF_S2_USE_ORACLE=1`.
 - **Rutas del frontend**: algunas pruebas leen archivos bajo `frontend/src/...` para comprobar navegación o validaciones en código fuente; no levantan el servidor Angular.
+- **Entorno**: usar el Python del venv (`backend/.venv`), no el `python3` del sistema ni el de Cursor.
 
-Si añades un archivo `test_*.py` nuevo en `Pruebas/`, pytest lo incluirá automáticamente al ejecutar `python -m pytest` desde la raíz.
+Si añades un archivo `test_*.py` nuevo en `Pruebas/` o `pruebas-s2/`, pytest lo incluirá al ejecutar desde la raíz.

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, Depends
 from typing import Optional
-from app.schemas.schemas import CitaCreate
+from app.application.citas.dtos import CitaCreate
 from app.application.citas import use_cases as service
 from app.presentation.api.security import get_current_user, require_role
 router = APIRouter()
@@ -36,6 +36,10 @@ def crear_cita(data: CitaCreate, current_user: dict=Depends(require_role('ADMINI
 @router.put('/{id_cita}')
 def actualizar_cita(id_cita: int, data: CitaCreate, current_user: dict=Depends(require_role('ADMINISTRADOR', 'RECEPCIONISTA'))):
     return service.actualizar_cita(id_cita, data, current_user)
+
+@router.put('/{id_cita}/iniciar')
+def iniciar_cita(id_cita: int, current_user: dict=Depends(require_role('ADMINISTRADOR', 'RECEPCIONISTA'))):
+    return service.iniciar_cita(id_cita, current_user)
 
 @router.put('/{id_cita}/completar')
 def completar_cita(id_cita: int, current_user: dict=Depends(require_role('ADMINISTRADOR', 'RECEPCIONISTA'))):

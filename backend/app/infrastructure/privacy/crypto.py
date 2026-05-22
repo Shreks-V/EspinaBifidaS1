@@ -41,6 +41,19 @@ def decrypt(ciphertext: str | None) -> str | None:
         return ciphertext
 
 
+def encrypt_bytes(plaintext: bytes) -> bytes:
+    key = _get_key()
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(12)
+    return nonce + aesgcm.encrypt(nonce, plaintext, None)
+
+
+def decrypt_bytes(data: bytes) -> bytes:
+    key = _get_key()
+    aesgcm = AESGCM(key)
+    return aesgcm.decrypt(data[:12], data[12:], None)
+
+
 PACIENTE_ENCRYPTED_FIELDS = {
     "curp",
     "telefono_casa",

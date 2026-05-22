@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Query, Depends, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from typing import Optional
-from app.schemas.schemas import PreRegistroCreate, AprobarPreRegistroData
+from app.application.preregistro.dtos import PreRegistroCreate, AprobarPreRegistroData
 from app.application.preregistro import use_cases as service
+from app.domain.auth.ports import AccessTokenIssuer
+from app.presentation.api.dependencies import get_token_decoder
 from app.presentation.api.security import (
     ensure_preregistro_access,
     get_current_user,
@@ -21,11 +23,14 @@ def listar_preregistros(
     return service.listar_preregistros(estatus, current_user, limit, offset)
 
 @router.post('', status_code=201)
-def crear_preregistro(data: PreRegistroCreate):
+def crear_preregistro(
+    data: PreRegistroCreate,
+    token_issuer: AccessTokenIssuer = Depends(get_token_decoder),
+):
     preregistro = service.crear_preregistro(data)
     id_paciente = preregistro.get('id_paciente')
     if id_paciente is not None:
-        preregistro['preregistro_token'] = issue_preregistro_token(int(id_paciente))
+        preregistro['preregistro_token'] = issue_preregistro_token(int(id_paciente), token_issuer)
     return preregistro
 
 @router.get('/tipos-espina')
@@ -57,7 +62,14 @@ async def subir_documento(
     _access=Depends(ensure_preregistro_access),
     current_user: dict | None = Depends(get_optional_current_user),
 ):
-    return await service.subir_documento(id_paciente, id_tipo_documento, archivo, current_user)
+    return await service.subir_documento(
+        id_paciente,
+        id_tipo_documento,
+        archivo.filename or "",
+        await archivo.read(),
+        archivo.content_type or "application/octet-stream",
+        current_user,
+    )
 
 @router.get('/{id_paciente}/documentos')
 def listar_documentos(
@@ -71,7 +83,11 @@ def listar_documentos(
 @router.get('/{id_paciente}/documentos/{id_documento}/archivo')
 def obtener_documento_archivo(id_paciente: int, id_documento: int, _access=Depends(ensure_preregistro_access)):
     archivo = service.obtener_documento_archivo(id_paciente, id_documento)
-    return FileResponse(path=archivo['file_path'], media_type=archivo['content_type'])
+    return StreamingResponse(
+        iter([archivo.content]),
+        media_type=archivo.content_type,
+        headers={'Content-Disposition': f'inline; filename="{archivo.filename}"'},
+    )
 
 @router.delete('/{id_paciente}/documentos/{id_documento}')
 def eliminar_documento(id_paciente: int, id_documento: int, _access=Depends(ensure_preregistro_access)):

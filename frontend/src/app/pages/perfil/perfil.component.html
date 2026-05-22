@@ -1,0 +1,181 @@
+<div class="min-h-screen flex flex-col bg-gradient-to-br from-[#b9e5fb] via-white to-[#e0f2ff]">
+  <app-navbar />
+
+  <main class="flex-1">
+    <div class="max-w-3xl mx-auto px-8 py-8 space-y-6">
+
+      <!-- Header -->
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-[#00328b] rounded-2xl flex items-center justify-center shadow-lg">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold text-slate-800">Mi Perfil</h1>
+          <p class="text-slate-500 text-sm">Administra tu cuenta y credenciales de acceso</p>
+        </div>
+      </div>
+
+      <!-- Info del usuario -->
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5 text-[#00328b]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"/>
+          </svg>
+          Información de la Cuenta
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Nombre</p>
+            <p class="text-sm font-semibold text-slate-800">{{ userName }}</p>
+          </div>
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Correo</p>
+            <p class="text-sm font-semibold text-slate-800">{{ userEmail }}</p>
+          </div>
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Rol</p>
+            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-[#00328b]/10 text-[#00328b]">{{ userRol }}</span>
+          </div>
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Estatus</p>
+            <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">Activo</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cambiar contraseña -->
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5 text-[#00328b]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Cambiar Contraseña
+        </h2>
+
+        @if (successMsg) {
+          <div class="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3">
+            <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            <p class="text-sm font-semibold text-emerald-800">{{ successMsg }}</p>
+          </div>
+        }
+
+        @if (errorMsg) {
+          <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+            <svg class="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>
+            </svg>
+            <p class="text-sm font-semibold text-red-700">{{ errorMsg }}</p>
+          </div>
+        }
+
+        <form (ngSubmit)="cambiarContrasena()" #pwForm="ngForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Contraseña actual *</label>
+            <div class="relative">
+              <input
+                [type]="showActual ? 'text' : 'password'"
+                [(ngModel)]="form.contrasena_actual"
+                name="contrasena_actual"
+                required
+                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-[#00328b] focus:ring-4 focus:ring-[#00328b]/10 outline-none transition-all text-sm pr-12"
+                placeholder="Ingresa tu contraseña actual"
+              />
+              <button type="button" (click)="showActual = !showActual"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  @if (showActual) {
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" x2="23" y1="1" y2="23"/>
+                  } @else {
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  }
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Nueva contraseña *</label>
+            <div class="relative">
+              <input
+                [type]="showNueva ? 'text' : 'password'"
+                [(ngModel)]="form.contrasena_nueva"
+                name="contrasena_nueva"
+                required
+                minlength="8"
+                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-[#00328b] focus:ring-4 focus:ring-[#00328b]/10 outline-none transition-all text-sm pr-12"
+                placeholder="Mínimo 8 caracteres"
+              />
+              <button type="button" (click)="showNueva = !showNueva"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  @if (showNueva) {
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" x2="23" y1="1" y2="23"/>
+                  } @else {
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  }
+                </svg>
+              </button>
+            </div>
+            @if (form.contrasena_nueva && form.contrasena_nueva.length < 8) {
+              <p class="mt-1 text-xs text-red-500">La contraseña debe tener al menos 8 caracteres.</p>
+            }
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Confirmar nueva contraseña *</label>
+            <div class="relative">
+              <input
+                [type]="showConfirm ? 'text' : 'password'"
+                [(ngModel)]="form.confirmar"
+                name="confirmar"
+                required
+                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-[#00328b] focus:ring-4 focus:ring-[#00328b]/10 outline-none transition-all text-sm pr-12"
+                [class.border-red-400]="form.confirmar && form.confirmar !== form.contrasena_nueva"
+                placeholder="Repite la nueva contraseña"
+              />
+              <button type="button" (click)="showConfirm = !showConfirm"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  @if (showConfirm) {
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" x2="23" y1="1" y2="23"/>
+                  } @else {
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  }
+                </svg>
+              </button>
+            </div>
+            @if (form.confirmar && form.confirmar !== form.contrasena_nueva) {
+              <p class="mt-1 text-xs text-red-500">Las contraseñas no coinciden.</p>
+            }
+          </div>
+
+          <div class="pt-2">
+            <button
+              type="submit"
+              [disabled]="saving || !pwForm.valid || form.contrasena_nueva !== form.confirmar || form.contrasena_nueva.length < 8"
+              class="px-6 py-3 bg-[#00328b] hover:bg-[#00246d] text-white font-bold rounded-xl text-sm transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+              {{ saving ? 'Guardando...' : 'Actualizar Contraseña' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </main>
+
+  <app-footer />
+</div>

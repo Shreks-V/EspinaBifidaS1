@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, Depends
 from typing import Optional
-from app.schemas.schemas import BeneficiarioCreate, BeneficiarioResponse, RenovarMembresiaCreate
+from app.application.beneficiarios.dtos import BeneficiarioCreate, RenovarMembresiaCreate
+from app.presentation.api.schemas import BeneficiarioResponse
 from app.application.beneficiarios import use_cases as service
 from app.presentation.api.security import get_current_user, require_role
 router = APIRouter()
@@ -80,4 +81,4 @@ def membresias_proximas_a_vencer(
 
 @router.post('/{folio}/renovar-membresia', status_code=200)
 def renovar_membresia(folio: str, data: RenovarMembresiaCreate, current_user: dict=Depends(require_role('ADMINISTRADOR', 'RECEPCIONISTA'))):
-    return service.renovar_membresia(folio, data.model_dump(), current_user)
+    return service.renovar_membresia(folio, data, current_user)

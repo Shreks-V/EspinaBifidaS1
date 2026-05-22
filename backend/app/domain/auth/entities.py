@@ -29,3 +29,23 @@ class SeedUser:
     correo: str
     contrasena: str
     rol: str
+
+
+@dataclass(frozen=True)
+class NewUser:
+    nombre: str
+    apellido_paterno: str | None
+    apellido_materno: str | None
+    correo: str
+    contrasena: str
+    rol: str
+    estatus: str = "ACTIVO"
+
+
+@dataclass(frozen=True)
+class UpdateUser:
+    nombre: str
+    apellido_paterno: str | None
+    apellido_materno: str | None
+    rol: str
+    estatus: str

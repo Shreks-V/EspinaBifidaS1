@@ -15,8 +15,8 @@ import logging
 from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
-from fastapi import HTTPException
-from fastapi.responses import StreamingResponse
+from app.domain.exportaciones.entities import FilePayload
+from app.domain.exceptions import InternalError, NotFoundError, ValidationError
 from app.infrastructure.persistence.oracle import get_db, rows_to_dicts, row_to_dict
 from app.infrastructure.privacy.crypto import decrypt_row, PACIENTE_ENCRYPTED_FIELDS
 logger = logging.getLogger(__name__)
@@ -35,13 +35,13 @@ def _date_str(val) -> str:
         return val.strftime('%d/%m/%Y')
     return str(val)
 
-def _pdf_response(buffer: io.BytesIO, filename: str) -> StreamingResponse:
+def _pdf_payload(buffer: io.BytesIO, filename: str) -> FilePayload:
     buffer.seek(0)
-    return StreamingResponse(buffer, media_type='application/pdf', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
+    return FilePayload(content=buffer.read(), media_type='application/pdf', filename=filename)
 
-def _excel_response(buffer: io.BytesIO, filename: str) -> StreamingResponse:
+def _excel_payload(buffer: io.BytesIO, filename: str) -> FilePayload:
     buffer.seek(0)
-    return StreamingResponse(buffer, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', headers={'Content-Disposition': f'attachment; filename="{filename}"'})
+    return FilePayload(content=buffer.read(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename=filename)
 
 def exportar_reporte_pdf(tipo: str='resumen', genero: Optional[str]=None, estado: Optional[str]=None, tipo_espina: Optional[int]=None, fecha_inicio: Optional[str]=None, fecha_fin: Optional[str]=None, current_user: dict=None):
     """Generar reporte estadístico en PDF (RF-ER-05)."""
@@ -50,7 +50,7 @@ def exportar_reporte_pdf(tipo: str='resumen', genero: Optional[str]=None, estado
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet
     try:
-        from app.application.reportes.use_cases import reporte_resumen, reporte_por_genero, reporte_por_etapa_vida, reporte_por_estado, reporte_por_tipo_espina
+        from app.infrastructure.reportes.repository import reporte_resumen, reporte_por_genero, reporte_por_etapa_vida, reporte_por_estado, reporte_por_tipo_espina
         kwargs = {'genero': genero, 'estado': estado, 'tipo_espina': tipo_espina, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin, 'current_user': current_user}
         buf = io.BytesIO()
         doc = SimpleDocTemplate(buf, pagesize=letter, topMargin=40, bottomMargin=40)
@@ -70,7 +70,7 @@ def exportar_reporte_pdf(tipo: str='resumen', genero: Optional[str]=None, estado
             report_funcs = {'por-genero': reporte_por_genero, 'por-etapa-vida': reporte_por_etapa_vida, 'por-estado': reporte_por_estado, 'por-tipo-espina': reporte_por_tipo_espina}
             func = report_funcs.get(tipo)
             if not func:
-                raise HTTPException(status_code=400, detail=f'Tipo de reporte no válido: {tipo}')
+                raise ValidationError(f'Tipo de reporte no válido: {tipo}')
             data = func(**kwargs)
             table_data = [['Categoría', 'Cantidad']]
             for label, value in zip(data['labels'], data['values']):
@@ -80,12 +80,12 @@ def exportar_reporte_pdf(tipo: str='resumen', genero: Optional[str]=None, estado
         t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a5f')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.white), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, -1), 10), ('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0f4f8')]), ('ALIGN', (1, 0), (1, -1), 'CENTER'), ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6)]))
         elements.append(t)
         doc.build(elements)
-        return _pdf_response(buf, f'reporte_{tipo}_{datetime.now().strftime('%Y%m%d')}.pdf')
-    except HTTPException:
+        return _pdf_payload(buf, f'reporte_{tipo}_{datetime.now().strftime('%Y%m%d')}.pdf')
+    except (NotFoundError, ValidationError, InternalError):
         raise
     except Exception:
         logger.exception('Error al generar PDF de reporte')
-        raise HTTPException(status_code=500, detail='Error interno del servidor')
+        raise InternalError('Error interno del servidor')
 
 def exportar_beneficiario_pdf(folio: str, current_user: dict=None):
     """Generar reporte PDF de un beneficiario con sus datos y documentos (RF-ER-06)."""
@@ -99,7 +99,7 @@ def exportar_beneficiario_pdf(folio: str, current_user: dict=None):
             cur.execute('SELECT * FROM PACIENTE WHERE FOLIO = :folio', {'folio': folio})
             paciente = row_to_dict(cur)
             if not paciente:
-                raise HTTPException(status_code=404, detail='Beneficiario no encontrado')
+                raise NotFoundError('Beneficiario no encontrado')
             paciente = decrypt_row(paciente, PACIENTE_ENCRYPTED_FIELDS)
             nombre = f'{paciente['nombre']} {paciente['apellido_paterno']} {paciente.get('apellido_materno') or ''}'.strip()
         buf = io.BytesIO()
@@ -118,12 +118,12 @@ def exportar_beneficiario_pdf(folio: str, current_user: dict=None):
         t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a5f')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.white), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, -1), 9), ('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0f4f8')]), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
         elements.append(t)
         doc.build(elements)
-        return _pdf_response(buf, f'expediente_{folio}_{datetime.now().strftime('%Y%m%d')}.pdf')
-    except HTTPException:
+        return _pdf_payload(buf, f'expediente_{folio}_{datetime.now().strftime('%Y%m%d')}.pdf')
+    except (NotFoundError, ValidationError, InternalError):
         raise
     except Exception:
         logger.exception('Error al generar PDF del beneficiario')
-        raise HTTPException(status_code=500, detail='Error interno del servidor')
+        raise InternalError('Error interno del servidor')
 
 def exportar_credencial_pdf(folio: str, current_user: dict=None):
     """Generar credencial del beneficiario en PDF (RF-RB-06)."""
@@ -150,7 +150,7 @@ def exportar_credencial_pdf(folio: str, current_user: dict=None):
             cur.execute('SELECT * FROM PACIENTE WHERE FOLIO = :folio', {'folio': folio})
             paciente = row_to_dict(cur)
             if not paciente:
-                raise HTTPException(status_code=404, detail='Beneficiario no encontrado')
+                raise NotFoundError('Beneficiario no encontrado')
             paciente = decrypt_row(paciente, PACIENTE_ENCRYPTED_FIELDS)
             cur.execute(
                 'SELECT te.NOMBRE FROM PACIENTE_TIPO_ESPINA pte '
@@ -306,12 +306,12 @@ def exportar_credencial_pdf(folio: str, current_user: dict=None):
         cv.drawCentredString(W / 2, 0.2 * cm, f'Vigencia: {vencimiento}')
         cv.drawRightString(W - 0.4 * cm, 0.2 * cm, f'CURP: {_sv("curp") or "N/A"}')
         cv.save()
-        return _pdf_response(buf, f'credencial_{folio}.pdf')
-    except HTTPException:
+        return _pdf_payload(buf, f'credencial_{folio}.pdf')
+    except (NotFoundError, ValidationError, InternalError):
         raise
     except Exception:
         logger.exception('Error al generar credencial PDF')
-        raise HTTPException(status_code=500, detail='Error interno del servidor')
+        raise InternalError('Error interno del servidor')
 
 
 def exportar_comprobante_cita(id_cita: int, current_user: dict=None):
@@ -326,7 +326,7 @@ def exportar_comprobante_cita(id_cita: int, current_user: dict=None):
             cur.execute("SELECT c.ID_CITA, c.FECHA_HORA, c.ESTATUS, c.NOTAS,\n                          p.NOMBRE || ' ' || p.APELLIDO_PATERNO || ' ' || NVL(p.APELLIDO_MATERNO, '') AS nombre_paciente,\n                          p.FOLIO AS folio_paciente\n                   FROM CITA c\n                   JOIN PACIENTE p ON p.ID_PACIENTE = c.ID_PACIENTE\n                   WHERE c.ID_CITA = :id_cita", {'id_cita': id_cita})
             cita = row_to_dict(cur)
             if not cita:
-                raise HTTPException(status_code=404, detail='Cita no encontrada')
+                raise NotFoundError('Cita no encontrada')
             cur.execute('SELECT s.NOMBRE, d.CANTIDAD, d.MONTO_PAGADO, d.CANCELADO\n                   FROM DETALLE_CITA_SERVICIO d\n                   JOIN SERVICIO s ON s.ID_SERVICIO = d.ID_SERVICIO\n                   WHERE d.ID_CITA = :id_cita', {'id_cita': id_cita})
             servicios = rows_to_dicts(cur)
             cur.execute("SELECT d.NOMBRE || ' ' || d.APELLIDO_PATERNO AS nombre_doctor,\n                          d.ESPECIALIDAD, cd.ROL_DOCTOR\n                   FROM CITA_DOCTOR cd\n                   JOIN DOCTOR d ON d.ID_DOCTOR = cd.ID_DOCTOR\n                   WHERE cd.ID_CITA = :id_cita", {'id_cita': id_cita})
@@ -358,12 +358,12 @@ def exportar_comprobante_cita(id_cita: int, current_user: dict=None):
         t_svc.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a5f')), ('TEXTCOLOR', (0, 0), (-1, 0), colors.white), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, -1), 9), ('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('ALIGN', (1, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
         elements.append(t_svc)
         doc.build(elements)
-        return _pdf_response(buf, f'comprobante_cita_{id_cita}.pdf')
-    except HTTPException:
+        return _pdf_payload(buf, f'comprobante_cita_{id_cita}.pdf')
+    except (NotFoundError, ValidationError, InternalError):
         raise
     except Exception:
         logger.exception('Error al generar comprobante PDF')
-        raise HTTPException(status_code=500, detail='Error interno del servidor')
+        raise InternalError('Error interno del servidor')
 
 def exportar_contrato_comodato(id_comodato: int, current_user: dict=None):
     """Generar contrato de comodato en PDF (RF-PS-05)."""
@@ -377,7 +377,7 @@ def exportar_contrato_comodato(id_comodato: int, current_user: dict=None):
             cur.execute("SELECT c.*, p.NOMBRE || ' ' || p.APELLIDO_PATERNO || ' ' || NVL(p.APELLIDO_MATERNO, '') AS nombre_paciente,\n                          p.FOLIO AS folio_paciente, pr.NOMBRE AS nombre_equipo,\n                          eq.NUMERO_SERIE, eq.MARCA, eq.MODELO\n                   FROM COMODATO c\n                   JOIN PACIENTE p ON p.ID_PACIENTE = c.ID_PACIENTE\n                   JOIN PRODUCTO pr ON pr.ID_PRODUCTO = c.ID_EQUIPO\n                   LEFT JOIN EQUIPO_MEDICO eq ON eq.ID_PRODUCTO = c.ID_EQUIPO\n                   WHERE c.ID_COMODATO = :id", {'id': id_comodato})
             com = row_to_dict(cur)
             if not com:
-                raise HTTPException(status_code=404, detail='Comodato no encontrado')
+                raise NotFoundError('Comodato no encontrado')
             cur.execute('SELECT * FROM PACIENTE WHERE ID_PACIENTE = :id', {'id': com['id_paciente']})
             paciente = row_to_dict(cur)
             paciente = decrypt_row(paciente, PACIENTE_ENCRYPTED_FIELDS)
@@ -417,12 +417,12 @@ def exportar_contrato_comodato(id_comodato: int, current_user: dict=None):
         elements.append(Paragraph('_________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_________________________', styles['Normal']))
         elements.append(Paragraph('Firma del Beneficiario&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Firma del Responsable', styles['Normal']))
         doc.build(elements)
-        return _pdf_response(buf, f'contrato_comodato_{folio_com}.pdf')
-    except HTTPException:
+        return _pdf_payload(buf, f'contrato_comodato_{folio_com}.pdf')
+    except (NotFoundError, ValidationError, InternalError):
         raise
     except Exception:
         logger.exception('Error al generar contrato de comodato PDF')
-        raise HTTPException(status_code=500, detail='Error interno del servidor')
+        raise InternalError('Error interno del servidor')
 
 def exportar_beneficiarios_excel(genero: Optional[str]=None, estado: Optional[str]=None, membresia_estatus: Optional[str]=None, busqueda: Optional[str]=None, current_user: dict=None):
     """Exportar lista filtrada de beneficiarios a Excel (RF-RB-07)."""
@@ -476,16 +476,16 @@ def exportar_beneficiarios_excel(genero: Optional[str]=None, estado: Optional[st
             ws.column_dimensions[col[0].column_letter].width = min(max_len + 3, 40)
         buf = io.BytesIO()
         wb.save(buf)
-        return _excel_response(buf, f'beneficiarios_{datetime.now().strftime('%Y%m%d')}.xlsx')
+        return _excel_payload(buf, f'beneficiarios_{datetime.now().strftime('%Y%m%d')}.xlsx')
     except Exception:
         logger.exception('Error al generar Excel de beneficiarios')
-        raise HTTPException(status_code=500, detail='Error interno del servidor')
+        raise InternalError('Error interno del servidor')
 
 def exportar_reporte_excel(tipo: str='resumen', fecha_inicio: Optional[str]=None, fecha_fin: Optional[str]=None, mes: Optional[int]=None, anio: Optional[int]=None, current_user: dict=None):
     """Exportar datos de reportes a Excel (RF-ER-11)."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
-    from app.application.reportes.use_cases import (reporte_resumen, reporte_por_genero, reporte_por_etapa_vida,
+    from app.infrastructure.reportes.repository import (reporte_resumen, reporte_por_genero, reporte_por_etapa_vida,
         reporte_por_estado, reporte_por_tipo_espina, reporte_servicios_por_tipo, reporte_pagos_exentos, reporte_consolidado_mensual)
     try:
         wb = Workbook()
@@ -604,30 +604,30 @@ def exportar_reporte_excel(tipo: str='resumen', fecha_inicio: Optional[str]=None
         buf = io.BytesIO()
         wb.save(buf)
         filename = f'reportes_completo_{datetime.now().strftime("%Y%m%d")}.xlsx' if tipo == 'all' else f'reporte_{tipo}_{datetime.now().strftime("%Y%m%d")}.xlsx'
-        return _excel_response(buf, filename)
+        return _excel_payload(buf, filename)
     except Exception:
         logger.exception('Error al generar Excel de reportes')
-        raise HTTPException(status_code=500, detail='Error interno del servidor')
+        raise InternalError('Error interno del servidor')
 
 
 class OracleExportacionesRepository:
-    def exportar_reporte_pdf(self, *args, **kwargs):
-        return exportar_reporte_pdf(*args, **kwargs)
+    def exportar_reporte_pdf(self, tipo='resumen', genero=None, estado=None, tipo_espina=None, fecha_inicio=None, fecha_fin=None, current_user=None):
+        return exportar_reporte_pdf(tipo, genero, estado, tipo_espina, fecha_inicio, fecha_fin, current_user)
 
-    def exportar_beneficiario_pdf(self, *args, **kwargs):
-        return exportar_beneficiario_pdf(*args, **kwargs)
+    def exportar_beneficiario_pdf(self, folio, current_user=None):
+        return exportar_beneficiario_pdf(folio, current_user)
 
-    def exportar_credencial_pdf(self, *args, **kwargs):
-        return exportar_credencial_pdf(*args, **kwargs)
+    def exportar_credencial_pdf(self, folio, current_user=None):
+        return exportar_credencial_pdf(folio, current_user)
 
-    def exportar_comprobante_cita(self, *args, **kwargs):
-        return exportar_comprobante_cita(*args, **kwargs)
+    def exportar_comprobante_cita(self, id_cita, current_user=None):
+        return exportar_comprobante_cita(id_cita, current_user)
 
-    def exportar_contrato_comodato(self, *args, **kwargs):
-        return exportar_contrato_comodato(*args, **kwargs)
+    def exportar_contrato_comodato(self, id_comodato, current_user=None):
+        return exportar_contrato_comodato(id_comodato, current_user)
 
-    def exportar_beneficiarios_excel(self, *args, **kwargs):
-        return exportar_beneficiarios_excel(*args, **kwargs)
+    def exportar_beneficiarios_excel(self, genero=None, estado=None, membresia_estatus=None, busqueda=None, current_user=None):
+        return exportar_beneficiarios_excel(genero, estado, membresia_estatus, busqueda, current_user)
 
-    def exportar_reporte_excel(self, *args, **kwargs):
-        return exportar_reporte_excel(*args, **kwargs)
+    def exportar_reporte_excel(self, tipo='resumen', fecha_inicio=None, fecha_fin=None, mes=None, anio=None, current_user=None):
+        return exportar_reporte_excel(tipo, fecha_inicio, fecha_fin, mes, anio, current_user)

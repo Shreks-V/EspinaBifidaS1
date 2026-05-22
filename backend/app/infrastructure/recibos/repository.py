@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from fastapi import HTTPException
+from app.domain.exceptions import InternalError, NotFoundError, ValidationError
 from typing import Optional
 from datetime import date, datetime, timedelta
 
@@ -7,8 +9,7 @@ import oracledb
 
 from app.infrastructure.audit.bitacora import log_insert, log_cancelacion
 from app.infrastructure.persistence.oracle import get_db, rows_to_dicts, row_to_dict
-from app.infrastructure.persistence.sp_helpers import make_number_list, sp_error_to_http
-from app.schemas.schemas import VentaCreate
+from app.infrastructure.persistence.sp_helpers import make_number_list, make_varchar_list, make_decimal_list, sp_error_to_http
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +54,33 @@ def _fetch_metodos_pago(conn, id_venta: int) -> list[dict]:
     cur.execute('\n        SELECT vmp.ID_METODO_PAGO  AS id_metodo_pago,\n               mp.NOMBRE           AS nombre,\n               vmp.MONTO           AS monto\n          FROM VENTA_METODO_PAGO vmp\n          JOIN METODO_PAGO mp ON mp.ID_METODO_PAGO = vmp.ID_METODO_PAGO\n         WHERE vmp.ID_VENTA = :id_venta\n        ', {'id_venta': id_venta})
     return rows_to_dicts(cur)
 
-def _enrich_venta(conn, venta: dict, mp_map: dict | None=None) -> dict:
-    """Add metodos_pago list and serialise dates."""
+def _fetch_items_venta(conn, id_venta: int) -> list[dict]:
+    """Return itemized lines for a single venta."""
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT ID_LINEA, ID_VENTA, TIPO, ID_REFERENCIA,
+               DESCRIPCION, PRECIO_UNITARIO, CANTIDAD, SUBTOTAL
+          FROM VENTA_LINEA
+         WHERE ID_VENTA = :id_venta
+         ORDER BY ID_LINEA
+        """,
+        {'id_venta': id_venta},
+    )
+    return rows_to_dicts(cur)
+
+
+def _enrich_venta(conn, venta: dict, mp_map: dict | None = None, include_items: bool = False) -> dict:
+    """Add metodos_pago, optionally items, and serialise dates."""
     venta = _serialize(venta)
     if mp_map is not None:
         venta['metodos_pago'] = mp_map.get(venta['id_venta'], [])
     else:
         venta['metodos_pago'] = _fetch_metodos_pago(conn, venta['id_venta'])
+    if include_items:
+        venta['items'] = _fetch_items_venta(conn, venta['id_venta'])
+    else:
+        venta['items'] = []
     return venta
 
 def _batch_fetch_metodos_pago(conn, venta_ids: list[int]) -> dict[int, list[dict]]:
@@ -160,10 +181,13 @@ def _is_unique_constraint_error(exc: Exception, hint: str='') -> bool:
 
 def _call_registrar_venta_completa(
     cur,
-    data: VentaCreate,
+    data,
     id_usuario: int,
-    productos_arr,
-    cantidades_arr,
+    linea_tipos_arr,
+    linea_ids_arr,
+    linea_descs_arr,
+    linea_precios_arr,
+    linea_cantidades_arr,
     metodos_arr,
     montos_arr,
 ) -> tuple[int, str]:
@@ -174,8 +198,11 @@ def _call_registrar_venta_completa(
         id_usuario,
         float(data.monto_total),
         data.exento_pago or 'N',
-        productos_arr,
-        cantidades_arr,
+        linea_tipos_arr,
+        linea_ids_arr,
+        linea_descs_arr,
+        linea_precios_arr,
+        linea_cantidades_arr,
         metodos_arr,
         montos_arr,
         id_venta_out,
@@ -189,16 +216,15 @@ def stats_ventas(current_user: dict=None):
         cur = conn.cursor()
         cur.execute("\n            SELECT NVL(SUM(v.MONTO_TOTAL), 0) AS monto_total_sum,\n                   COUNT(*)                     AS count\n              FROM VENTA v\n             WHERE v.CANCELADA = 'N'\n            ")
         totals = row_to_dict(cur)
-        from datetime import date as date_type
-        hoy_str = date_type.today().isoformat()
-        cur.execute("\n            SELECT COUNT(*) AS total_hoy\n              FROM VENTA v\n             WHERE v.CANCELADA = 'N' AND TRUNC(v.FECHA_VENTA) = TO_DATE(:fecha, 'YYYY-MM-DD')\n            ", {'fecha': hoy_str})
+        hoy_str = date.today().isoformat()
+        cur.execute("\n            SELECT COUNT(*) AS total_hoy\n              FROM VENTA v\n             WHERE v.CANCELADA = 'N'\n               AND v.FECHA_VENTA >= TO_DATE(:fecha, 'YYYY-MM-DD')\n               AND v.FECHA_VENTA < TO_DATE(:fecha, 'YYYY-MM-DD') + 1\n            ", {'fecha': hoy_str})
         hoy = row_to_dict(cur)
         cur.execute("\n            SELECT COUNT(*) AS pendientes\n              FROM VENTA v\n             WHERE v.CANCELADA = 'N' AND v.SALDO_PENDIENTE > 0\n            ")
         pend = row_to_dict(cur)
         cur.execute("\n            SELECT NVL(SUM(CASE WHEN UPPER(mp.NOMBRE) = 'EFECTIVO'       THEN vmp.MONTO ELSE 0 END), 0) AS monto_efectivo,\n                   NVL(SUM(CASE WHEN UPPER(mp.NOMBRE) = 'TARJETA'        THEN vmp.MONTO ELSE 0 END), 0) AS monto_tarjeta,\n                   NVL(SUM(CASE WHEN UPPER(mp.NOMBRE) = 'TRANSFERENCIA'  THEN vmp.MONTO ELSE 0 END), 0) AS monto_transferencia\n              FROM VENTA_METODO_PAGO vmp\n              JOIN METODO_PAGO mp ON mp.ID_METODO_PAGO = vmp.ID_METODO_PAGO\n              JOIN VENTA v         ON v.ID_VENTA       = vmp.ID_VENTA\n             WHERE v.CANCELADA = 'N'\n            ")
         by_method = row_to_dict(cur)
         ayer_str = (date.today() - timedelta(days=1)).isoformat()
-        cur.execute("\n            SELECT COUNT(*) AS total_ayer\n              FROM VENTA v\n             WHERE v.CANCELADA = 'N' AND TRUNC(v.FECHA_VENTA) = TO_DATE(:fecha, 'YYYY-MM-DD')\n            ", {'fecha': ayer_str})
+        cur.execute("\n            SELECT COUNT(*) AS total_ayer\n              FROM VENTA v\n             WHERE v.CANCELADA = 'N'\n               AND v.FECHA_VENTA >= TO_DATE(:fecha, 'YYYY-MM-DD')\n               AND v.FECHA_VENTA < TO_DATE(:fecha, 'YYYY-MM-DD') + 1\n            ", {'fecha': ayer_str})
         ayer = row_to_dict(cur)
     return {'monto_total_sum': float(totals['monto_total_sum']), 'monto_efectivo': float(by_method['monto_efectivo']), 'monto_tarjeta': float(by_method['monto_tarjeta']), 'monto_transferencia': float(by_method['monto_transferencia']), 'count': int(totals['count']), 'total_hoy': int(hoy['total_hoy']), 'total_ayer': int(ayer['total_ayer']) if ayer else 0, 'pendientes': int(pend['pendientes'])}
 
@@ -238,27 +264,35 @@ def listar_ventas(fecha_inicio: Optional[str]=None, fecha_fin: Optional[str]=Non
         results = [_enrich_venta(conn, v, mp_map=mp_map) for v in ventas]
     return results
 
-def crear_venta(data: VentaCreate, current_user: dict=None):
+def crear_venta(data, current_user: dict=None):
     """Crear nueva venta vía SP_REGISTRAR_VENTA_COMPLETA."""
     try:
         with get_db() as conn:
-            id_usuario = current_user.get('id_usuario', 1)
+            id_usuario = current_user.get('id_usuario', 1) if current_user else 1
             cur = conn.cursor()
 
+            items = data.items or []
             metodos_ids = [int(mp['id_metodo_pago']) for mp in (data.metodos_pago or [])]
             metodos_montos = [float(mp['monto']) for mp in (data.metodos_pago or [])]
-            productos_arr = make_number_list(conn, [])
-            cantidades_arr = make_number_list(conn, [])
-            metodos_arr = make_number_list(conn, metodos_ids)
-            montos_arr = make_number_list(conn, metodos_montos)
+
+            linea_tipos_arr   = make_varchar_list(conn, [it.tipo for it in items])
+            linea_ids_arr     = make_number_list(conn, [it.id_referencia for it in items])
+            linea_descs_arr   = make_varchar_list(conn, [it.descripcion for it in items])
+            linea_precios_arr = make_decimal_list(conn, [it.precio_unitario for it in items])
+            linea_cant_arr    = make_number_list(conn, [it.cantidad for it in items])
+            metodos_arr       = make_number_list(conn, metodos_ids)
+            montos_arr        = make_decimal_list(conn, metodos_montos)
 
             try:
                 new_id, folio = _call_registrar_venta_completa(
                     cur,
                     data,
                     id_usuario,
-                    productos_arr,
-                    cantidades_arr,
+                    linea_tipos_arr,
+                    linea_ids_arr,
+                    linea_descs_arr,
+                    linea_precios_arr,
+                    linea_cant_arr,
                     metodos_arr,
                     montos_arr,
                 )
@@ -281,8 +315,11 @@ def crear_venta(data: VentaCreate, current_user: dict=None):
                         cur,
                         data,
                         id_usuario,
-                        productos_arr,
-                        cantidades_arr,
+                        linea_tipos_arr,
+                        linea_ids_arr,
+                        linea_descs_arr,
+                        linea_precios_arr,
+                        linea_cant_arr,
                         metodos_arr,
                         montos_arr,
                     )
@@ -298,23 +335,33 @@ def crear_venta(data: VentaCreate, current_user: dict=None):
             cur.execute("\n            SELECT v.ID_VENTA,\n                   v.FOLIO_VENTA,\n                   v.ID_PACIENTE,\n                   v.ID_USUARIO_REGISTRO,\n                   v.FECHA_VENTA,\n                   v.MONTO_TOTAL,\n                   v.MONTO_PAGADO,\n                   v.SALDO_PENDIENTE,\n                   v.EXENTO_PAGO,\n                   v.CANCELADA,\n                   v.MOTIVO_CANCELACION,\n                   p.NOMBRE || ' ' || p.APELLIDO_PATERNO || ' ' || NVL(p.APELLIDO_MATERNO, '')\n                       AS NOMBRE_PACIENTE,\n                   p.FOLIO AS FOLIO_PACIENTE\n              FROM VENTA v\n              JOIN PACIENTE p ON p.ID_PACIENTE = v.ID_PACIENTE\n             WHERE v.ID_VENTA = :id_venta\n            ", {'id_venta': new_id})
             venta = row_to_dict(cur)
             if venta is None:
-                raise HTTPException(status_code=500, detail='Error al recuperar la venta creada')
-            return _enrich_venta(conn, venta)
-    except HTTPException:
+                raise InternalError('Error al recuperar la venta creada')
+            return _enrich_venta(conn, venta, include_items=True)
+    except (NotFoundError, ValidationError, InternalError):
         raise
     except Exception as exc:
         logger.exception('Error al crear venta para paciente %s: %s', data.id_paciente, exc)
-        raise HTTPException(status_code=500, detail='Error interno al crear la venta')
+        raise InternalError('Error interno al crear la venta')
 
 def obtener_venta(id_venta: int, current_user: dict=None):
-    """Obtener detalle de una venta."""
+    """Obtener detalle de una venta (incluye items)."""
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("\n            SELECT v.ID_VENTA,\n                   v.FOLIO_VENTA,\n                   v.ID_PACIENTE,\n                   v.ID_USUARIO_REGISTRO,\n                   v.FECHA_VENTA,\n                   v.MONTO_TOTAL,\n                   v.MONTO_PAGADO,\n                   v.SALDO_PENDIENTE,\n                   v.EXENTO_PAGO,\n                   v.CANCELADA,\n                   v.MOTIVO_CANCELACION,\n                   p.NOMBRE || ' ' || p.APELLIDO_PATERNO || ' ' || NVL(p.APELLIDO_MATERNO, '')\n                       AS NOMBRE_PACIENTE,\n                   p.FOLIO AS FOLIO_PACIENTE\n              FROM VENTA v\n              JOIN PACIENTE p ON p.ID_PACIENTE = v.ID_PACIENTE\n             WHERE v.ID_VENTA = :id_venta\n            ", {'id_venta': id_venta})
         venta = row_to_dict(cur)
         if venta is None:
-            raise HTTPException(status_code=404, detail='Venta no encontrada')
-        return _enrich_venta(conn, venta)
+            raise NotFoundError('Venta no encontrada')
+        return _enrich_venta(conn, venta, include_items=True)
+
+
+def listar_items_venta(id_venta: int, current_user: dict=None):
+    """Listar ítems (líneas) de una venta."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT ID_VENTA FROM VENTA WHERE ID_VENTA = :id_venta', {'id_venta': id_venta})
+        if row_to_dict(cur) is None:
+            raise NotFoundError('Venta no encontrada')
+        return _fetch_items_venta(conn, id_venta)
 
 def registrar_pago(id_venta: int, id_metodo_pago: int, monto: float, current_user: dict=None):
     """Agregar un pago parcial a una venta vía SP_REGISTRAR_PAGO_PARCIAL."""
@@ -343,9 +390,9 @@ def cancelar_venta(id_venta: int, motivo: Optional[str]=None, current_user: dict
         cur.execute('SELECT CANCELADA FROM VENTA WHERE ID_VENTA = :id_venta', {'id_venta': id_venta})
         row = row_to_dict(cur)
         if row is None:
-            raise HTTPException(status_code=404, detail='Venta no encontrada')
+            raise NotFoundError('Venta no encontrada')
         if row['cancelada'] == 'S':
-            raise HTTPException(status_code=400, detail='La venta ya esta cancelada')
+            raise ValidationError('La venta ya esta cancelada')
         motivo_final = motivo or 'Sin motivo especificado'
         cur.execute("\n            UPDATE VENTA\n               SET CANCELADA = 'S',\n                   MOTIVO_CANCELACION = :motivo\n             WHERE ID_VENTA = :id_venta\n            ", {'motivo': motivo_final, 'id_venta': id_venta})
         log_cancelacion(conn, 'VENTA', id_venta, current_user.get('id_usuario', 1), motivo_final)
@@ -356,23 +403,26 @@ def cancelar_venta(id_venta: int, motivo: Optional[str]=None, current_user: dict
 
 
 class OracleRecibosRepository:
-    def stats_ventas(self, *args, **kwargs):
-        return stats_ventas(*args, **kwargs)
+    def stats_ventas(self, current_user=None):
+        return stats_ventas(current_user)
 
-    def listar_metodos_pago(self, *args, **kwargs):
-        return listar_metodos_pago(*args, **kwargs)
+    def listar_metodos_pago(self, current_user=None):
+        return listar_metodos_pago(current_user)
 
-    def listar_ventas(self, *args, **kwargs):
-        return listar_ventas(*args, **kwargs)
+    def listar_ventas(self, fecha_inicio=None, fecha_fin=None, id_paciente=None, search=None, current_user=None, limit=100, offset=0):
+        return listar_ventas(fecha_inicio, fecha_fin, id_paciente, search, current_user, limit, offset)
 
-    def crear_venta(self, *args, **kwargs):
-        return crear_venta(*args, **kwargs)
+    def crear_venta(self, data, current_user=None):
+        return crear_venta(data, current_user)
 
-    def obtener_venta(self, *args, **kwargs):
-        return obtener_venta(*args, **kwargs)
+    def obtener_venta(self, id_venta, current_user=None):
+        return obtener_venta(id_venta, current_user)
 
-    def cancelar_venta(self, *args, **kwargs):
-        return cancelar_venta(*args, **kwargs)
+    def cancelar_venta(self, id_venta, motivo=None, current_user=None):
+        return cancelar_venta(id_venta, motivo, current_user)
 
-    def registrar_pago(self, *args, **kwargs):
-        return registrar_pago(*args, **kwargs)
+    def registrar_pago(self, id_venta, id_metodo_pago, monto, current_user=None):
+        return registrar_pago(id_venta, id_metodo_pago, monto, current_user)
+
+    def listar_items_venta(self, id_venta, current_user=None):
+        return listar_items_venta(id_venta, current_user)

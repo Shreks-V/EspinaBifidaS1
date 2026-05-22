@@ -1,0 +1,286 @@
+<div class="min-h-screen flex flex-col bg-gradient-to-br from-[#b9e5fb] via-white to-[#e0f2ff]">
+  <app-navbar />
+
+  <main class="flex-1">
+    <div class="max-w-5xl mx-auto px-6 py-8 space-y-6">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-[#00328b] rounded-2xl flex items-center justify-center shadow-lg">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-slate-800">Gestión de Usuarios</h1>
+            <p class="text-sm text-slate-500">Administra los accesos al sistema</p>
+          </div>
+        </div>
+        <button (click)="openCreateModal()"
+          class="flex items-center gap-2 px-5 py-2.5 bg-[#00328b] hover:bg-[#00246d] text-white font-bold rounded-xl text-sm shadow-lg transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/>
+          </svg>
+          Nuevo Usuario
+        </button>
+      </div>
+
+      <!-- Alert -->
+      @if (globalMsg) {
+        <div class="p-4 rounded-xl border flex items-center gap-3 text-sm font-semibold"
+          [ngClass]="globalMsgType === 'success'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            : 'bg-red-50 border-red-200 text-red-700'">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            @if (globalMsgType === 'success') {
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            } @else {
+              <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>
+            }
+          </svg>
+          {{ globalMsg }}
+        </div>
+      }
+
+      <!-- Table -->
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <p class="text-sm font-bold text-slate-700">{{ usuarios.length }} usuario{{ usuarios.length !== 1 ? 's' : '' }}</p>
+          <button (click)="cargarUsuarios()" [disabled]="loading"
+            class="flex items-center gap-1.5 text-xs font-semibold text-[#0052cc] hover:text-[#00328b] transition-colors disabled:opacity-50">
+            <svg class="w-3.5 h-3.5" [class.animate-spin]="loading" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Actualizar
+          </button>
+        </div>
+
+        @if (loading) {
+          <div class="py-16 flex flex-col items-center gap-3 text-slate-400">
+            <svg class="w-8 h-8 animate-spin" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <p class="text-sm">Cargando usuarios...</p>
+          </div>
+        }
+
+        @if (!loading) {
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200">
+                  <th class="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Usuario</th>
+                  <th class="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Correo</th>
+                  <th class="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Rol</th>
+                  <th class="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Estatus</th>
+                  <th class="text-left px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (u of usuarios; track u.id_usuario) {
+                  <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-[#00328b]/10 text-[#00328b] font-black text-xs flex items-center justify-center">
+                          {{ initials(u) }}
+                        </div>
+                        <div>
+                          <p class="font-semibold text-slate-800">{{ u.nombre }} {{ u.apellido_paterno }}</p>
+                          @if (u.apellido_materno) {
+                            <p class="text-xs text-slate-400">{{ u.apellido_materno }}</p>
+                          }
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600">{{ u.correo }}</td>
+                    <td class="px-6 py-4">
+                      <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-[#00328b]/10 text-[#00328b]">
+                        {{ rolLabel(u.rol) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span class="px-2.5 py-1 rounded-full text-xs font-bold"
+                        [ngClass]="u.estatus === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'">
+                        {{ u.estatus }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2">
+                        <button (click)="openEditModal(u)"
+                          class="px-3 py-1.5 text-xs font-bold text-[#00328b] border-2 border-[#00328b]/30 hover:bg-[#00328b]/5 rounded-lg transition-colors">
+                          Editar
+                        </button>
+                        <button (click)="openResetModal(u)"
+                          class="px-3 py-1.5 text-xs font-bold text-amber-600 border-2 border-amber-300 hover:bg-amber-50 rounded-lg transition-colors">
+                          Reset pass.
+                        </button>
+                        @if (u.id_usuario !== currentUserId) {
+                          <button (click)="toggleEstatus(u)"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border-2"
+                            [ngClass]="u.estatus === 'ACTIVO'
+                              ? 'text-red-600 border-red-300 hover:bg-red-50'
+                              : 'text-emerald-600 border-emerald-300 hover:bg-emerald-50'">
+                            {{ u.estatus === 'ACTIVO' ? 'Desactivar' : 'Activar' }}
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+                @if (usuarios.length === 0) {
+                  <tr>
+                    <td colspan="5" class="px-6 py-14 text-center">
+                      <div class="flex flex-col items-center gap-2 text-slate-400">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                          <circle cx="9" cy="7" r="4"/>
+                        </svg>
+                        <p class="text-sm font-semibold">No hay usuarios registrados</p>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+    </div>
+  </main>
+
+  <app-footer />
+</div>
+
+<!-- Modal Crear / Editar -->
+@if (showFormModal) {
+  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" (click)="closeFormModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 bg-[#00328b] rounded-xl flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            </svg>
+          </div>
+          <h2 class="text-base font-bold text-slate-900">{{ editMode ? 'Editar Usuario' : 'Nuevo Usuario' }}</h2>
+        </div>
+        <button (click)="closeFormModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 text-slate-400 transition-all cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="px-6 py-5 space-y-4">
+        @if (formError) {
+          <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-semibold">{{ formError }}</div>
+        }
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5">Nombre *</label>
+            <input [(ngModel)]="formData.nombre" type="text" placeholder="Nombre"
+              class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-[#00328b] focus:outline-none transition-all"/>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5">Apellido Paterno</label>
+            <input [(ngModel)]="formData.apellido_paterno" type="text" placeholder="Apellido Paterno"
+              class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-[#00328b] focus:outline-none transition-all"/>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5">Apellido Materno</label>
+            <input [(ngModel)]="formData.apellido_materno" type="text" placeholder="Apellido Materno"
+              class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-[#00328b] focus:outline-none transition-all"/>
+          </div>
+          @if (!editMode) {
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">Correo *</label>
+              <input [(ngModel)]="formData.correo" type="email" placeholder="correo@dominio.com"
+                class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-[#00328b] focus:outline-none transition-all"/>
+            </div>
+          }
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5">Rol *</label>
+            <select [(ngModel)]="formData.rol"
+              class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-[#00328b] focus:outline-none transition-all bg-white">
+              @for (r of roles; track r.value) {
+                <option [value]="r.value">{{ r.label }}</option>
+              }
+            </select>
+          </div>
+          @if (editMode) {
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">Estatus *</label>
+              <select [(ngModel)]="formData.estatus"
+                class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-[#00328b] focus:outline-none transition-all bg-white">
+                <option value="ACTIVO">ACTIVO</option>
+                <option value="INACTIVO">INACTIVO</option>
+              </select>
+            </div>
+          }
+          @if (!editMode) {
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">Contraseña * (mín. 8 caracteres)</label>
+              <input [(ngModel)]="formData.contrasena" type="password" placeholder="Contraseña inicial"
+                class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-[#00328b] focus:outline-none transition-all"/>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+        <button (click)="closeFormModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+          Cancelar
+        </button>
+        <button (click)="submitForm()" [disabled]="formLoading"
+          class="px-5 py-2 text-sm font-bold text-white bg-[#00328b] hover:bg-[#00246d] rounded-xl transition-all disabled:opacity-50">
+          {{ formLoading ? 'Guardando...' : (editMode ? 'Guardar cambios' : 'Crear usuario') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Reset Contraseña -->
+@if (showResetModal) {
+  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" (click)="closeResetModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+        <h2 class="text-base font-bold text-slate-900">Restablecer contraseña</h2>
+        <button (click)="closeResetModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 text-slate-400 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="px-6 py-5 space-y-3">
+        @if (resetError) {
+          <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-semibold">{{ resetError }}</div>
+        }
+        @if (resetSuccess) {
+          <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-semibold">Contraseña restablecida correctamente.</div>
+        }
+        @if (!resetSuccess) {
+          <p class="text-sm text-slate-600">Nueva contraseña para <strong>{{ resetTarget?.nombre }}</strong>:</p>
+          <input [(ngModel)]="resetNueva" type="password" placeholder="Mínimo 8 caracteres"
+            class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-[#00328b] focus:outline-none transition-all"/>
+        }
+      </div>
+      <div class="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+        <button (click)="closeResetModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+          {{ resetSuccess ? 'Cerrar' : 'Cancelar' }}
+        </button>
+        @if (!resetSuccess) {
+          <button (click)="submitReset()" [disabled]="resetLoading"
+            class="px-5 py-2 text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-all disabled:opacity-50">
+            {{ resetLoading ? 'Guardando...' : 'Confirmar' }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

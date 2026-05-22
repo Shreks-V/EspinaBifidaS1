@@ -89,6 +89,10 @@ export class ApiService {
     return this.http.put<any>(`${this.apiUrl}/citas/${id}`, data);
   }
 
+  iniciarCita(id: number): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/citas/${id}/iniciar`, {});
+  }
+
   completarCita(id: number): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/citas/${id}/completar`, {});
   }
@@ -153,6 +157,18 @@ export class ApiService {
 
   getDoctorServicios(id: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/doctores/${id}/servicios`);
+  }
+
+  getDoctorDisponibilidadEspecial(id: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/doctores/${id}/disponibilidad-especial`);
+  }
+
+  createDoctorDisponibilidadEspecial(idDoctor: number, data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/doctores/${idDoctor}/disponibilidad-especial`, data);
+  }
+
+  deleteDoctorDisponibilidadEspecial(idDoctor: number, idDispEspecial: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/doctores/${idDoctor}/disponibilidad-especial/${idDispEspecial}`);
   }
 
   // ──────────────── Almacen ────────────────
@@ -264,6 +280,10 @@ export class ApiService {
 
   getMetodosPago(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/recibos/metodos-pago`);
+  }
+
+  getReciboItems(id: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/recibos/${id}/items`);
   }
 
   // ──────────────── Exportaciones (PDF / Excel) ────────────────
@@ -430,6 +450,20 @@ export class ApiService {
     return this.http.get<any[]>(`${this.apiUrl}/reportes/historial`, { params });
   }
 
+  getReportePorCiudad(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/reportes/por-ciudad`);
+  }
+
+  getIndicadoresDesempeno(filters?: any): Observable<any> {
+    let params = new HttpParams();
+    if (filters) {
+      Object.keys(filters).forEach((key) => {
+        if (filters[key]) params = params.set(key, filters[key]);
+      });
+    }
+    return this.http.get<any>(`${this.apiUrl}/reportes/indicadores-desempeno`, { params });
+  }
+
   // ──────────────── Pre-registro ────────────────
 
   getPreRegistros(): Observable<any[]> {
@@ -487,5 +521,27 @@ export class ApiService {
 
   seedUsers(): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/auth/seed`, {});
+  }
+
+  // ──────────────── Auth (gestión de contraseñas) ────────────────
+
+  cambiarContrasena(data: { contrasena_actual: string; contrasena_nueva: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/auth/cambiar-contrasena`, data);
+  }
+
+  listarUsuariosSistema(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/auth/usuarios`);
+  }
+
+  adminResetContrasena(idUsuario: number, data: { contrasena_nueva: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/auth/usuarios/${idUsuario}/reset-contrasena`, data);
+  }
+
+  crearUsuarioSistema(data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/auth/usuarios`, data);
+  }
+
+  actualizarUsuarioSistema(idUsuario: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/auth/usuarios/${idUsuario}`, data);
   }
 }

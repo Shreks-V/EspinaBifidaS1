@@ -1,6 +1,40 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+
+# Environment files
+.env
+.env.*
+
+# Distribution/build
+build/
+dist/
+*.egg-info
+
+# Tests and local files
+tests/
+Pruebas/
+*.log
+*.sqlite3
+
+# Git
+.git
+.gitignore
+
+# Wallet is mounted at runtime; don't include in image context
+wallet/
 venv/
 __pycache__/
 *.pyc
+*.pyo
 .env
 .env.*
+.git/
+.pytest_cache/
+tests/
+*.md
 migrate_preregistro.py

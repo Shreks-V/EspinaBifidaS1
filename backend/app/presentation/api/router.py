@@ -5,6 +5,7 @@ from app.presentation.api.routers import (
     auth,
     beneficiarios,
     citas,
+    config,
     doctores,
     exportaciones,
     notificaciones,
@@ -16,6 +17,7 @@ from app.presentation.api.routers import (
 
 def build_api_router() -> APIRouter:
     router = APIRouter()
+    router.include_router(config.router, prefix="/api/config", tags=["Configuración"])
     router.include_router(auth.router, prefix="/api/auth", tags=["Autenticación"])
     router.include_router(beneficiarios.router, prefix="/api/beneficiarios", tags=["Beneficiarios"])
     router.include_router(citas.router, prefix="/api/citas", tags=["Citas"])

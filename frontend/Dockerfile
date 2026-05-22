@@ -4,7 +4,8 @@ FROM node:20-alpine AS dev
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+# Use quieter npm flags to reduce build layer noise
+RUN npm ci --legacy-peer-deps --silent --no-audit --no-fund --prefer-offline --no-progress
 
 COPY . .
 CMD ["npm", "start", "--", "--host", "0.0.0.0", "--poll", "2000"]
@@ -15,13 +16,13 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --silent --no-audit --no-fund --prefer-offline --no-progress
 
 COPY . .
 RUN npx ng build --configuration production
 
-# Stage 3: Serve with nginx
-FROM nginx:alpine
+# Stage 3: Serve with nginx (production)
+FROM nginx:alpine AS prod
 
 # Copy built Angular files
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html

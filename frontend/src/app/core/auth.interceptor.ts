@@ -1,4 +1,7 @@
+import { inject } from '@angular/core';
 import { HttpInterceptorFn } from '@angular/common/http';
+import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
 
 /**
  * Public preregistro endpoints that must NOT carry the auth token:
@@ -76,5 +79,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       setHeaders: { Authorization: `Bearer ${token}` },
     });
   }
-  return next(req);
+
+  return next(req).pipe(
+    catchError((err) => {
+      if (err.status === 401 && !isPublicPreregistroUrl(req.url, req.method)) {
+        inject(AuthService).logout();
+      }
+      return throwError(() => err);
+    }),
+  );
 };

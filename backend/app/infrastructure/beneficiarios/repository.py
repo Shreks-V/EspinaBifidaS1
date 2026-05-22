@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import logging
-from fastapi import HTTPException
+from app.domain.exceptions import NotFoundError
 from typing import Optional
 from datetime import date, datetime, timedelta
 from app.infrastructure.audit.bitacora import log_insert, log_delete
 from app.infrastructure.persistence.oracle import get_db, rows_to_dicts, row_to_dict
 from app.infrastructure.privacy.crypto import encrypt, decrypt_row, PACIENTE_ENCRYPTED_FIELDS
-from app.schemas.schemas import BeneficiarioCreate
 
 logger = logging.getLogger(__name__)
 
@@ -177,9 +178,9 @@ def dashboard_stats(current_user: dict=None):
         hoy = date.today()
         inicio_semana = hoy - timedelta(days=hoy.weekday())
         inicio_semana_ant = inicio_semana - timedelta(days=7)
-        cur.execute("SELECT COUNT(*) FROM PACIENTE\n               WHERE ACTIVO = 'S' AND ESTATUS_REGISTRO = 'APROBADO'\n                 AND TRUNC(FECHA_REGISTRO) >= TO_DATE(:inicio, 'YYYY-MM-DD')", {'inicio': inicio_semana.isoformat()})
+        cur.execute("SELECT COUNT(*) FROM PACIENTE\n               WHERE ACTIVO = 'S' AND ESTATUS_REGISTRO = 'APROBADO'\n                 AND FECHA_REGISTRO >= TO_DATE(:inicio, 'YYYY-MM-DD')", {'inicio': inicio_semana.isoformat()})
         nuevos_esta_semana = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM PACIENTE\n               WHERE ACTIVO = 'S' AND ESTATUS_REGISTRO = 'APROBADO'\n                 AND TRUNC(FECHA_REGISTRO) >= TO_DATE(:inicio, 'YYYY-MM-DD')\n                 AND TRUNC(FECHA_REGISTRO) < TO_DATE(:fin, 'YYYY-MM-DD')", {'inicio': inicio_semana_ant.isoformat(), 'fin': inicio_semana.isoformat()})
+        cur.execute("SELECT COUNT(*) FROM PACIENTE\n               WHERE ACTIVO = 'S' AND ESTATUS_REGISTRO = 'APROBADO'\n                 AND FECHA_REGISTRO >= TO_DATE(:inicio, 'YYYY-MM-DD')\n                 AND FECHA_REGISTRO < TO_DATE(:fin, 'YYYY-MM-DD')", {'inicio': inicio_semana_ant.isoformat(), 'fin': inicio_semana.isoformat()})
         nuevos_semana_anterior = cur.fetchone()[0]
         return {'total': total, 'activos': activos, 'inactivos': inactivos, 'por_genero': {'Masculino': masculino, 'Femenino': femenino}, 'por_procedencia': {'Nuevo León': nuevo_leon, 'Foráneos': foraneos}, 'por_etapa_vida': etapas, 'nuevos_esta_semana': nuevos_esta_semana, 'nuevos_semana_anterior': nuevos_semana_anterior}
 
@@ -242,10 +243,10 @@ def obtener_beneficiario(folio: str, current_user: dict=None):
         cur.execute('SELECT * FROM PACIENTE WHERE FOLIO = :folio', {'folio': folio})
         row = row_to_dict(cur)
         if row is None:
-            raise HTTPException(status_code=404, detail='Beneficiario no encontrado')
+            raise NotFoundError('Beneficiario no encontrado')
         return _patient_row_to_response(row, conn)
 
-def crear_beneficiario(data: BeneficiarioCreate, current_user: dict=None):
+def crear_beneficiario(data, current_user: dict=None):
     """Crear nuevo beneficiario con folio auto-generado."""
     with get_db() as conn:
         cur = conn.cursor()
@@ -265,14 +266,14 @@ def crear_beneficiario(data: BeneficiarioCreate, current_user: dict=None):
         row = row_to_dict(cur)
         return _patient_row_to_response(row, conn)
 
-def actualizar_beneficiario(folio: str, data: BeneficiarioCreate, current_user: dict=None):
+def actualizar_beneficiario(folio: str, data, current_user: dict=None):
     """Actualizar beneficiario existente."""
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute('SELECT ID_PACIENTE FROM PACIENTE WHERE FOLIO = :folio', {'folio': folio})
         row = cur.fetchone()
         if row is None:
-            raise HTTPException(status_code=404, detail='Beneficiario no encontrado')
+            raise NotFoundError('Beneficiario no encontrado')
         id_paciente = row[0]
         payload = data.model_dump()
         tipos_ids = payload.pop('tipos_espina', None) or []
@@ -303,7 +304,7 @@ def eliminar_beneficiario(folio: str, current_user: dict=None):
         cur.execute('SELECT ID_PACIENTE FROM PACIENTE WHERE FOLIO = :folio', {'folio': folio})
         row = cur.fetchone()
         if row is None:
-            raise HTTPException(status_code=404, detail='Beneficiario no encontrado')
+            raise NotFoundError('Beneficiario no encontrado')
         id_paciente = row[0]
         cur.execute("UPDATE PACIENTE SET ACTIVO = 'N' WHERE FOLIO = :folio", {'folio': folio})
         log_delete(conn, 'PACIENTE', id_paciente, current_user.get('id_usuario', 1), f'Beneficiario {folio} desactivado')
@@ -329,7 +330,7 @@ def historial_beneficiario(
         cur.execute('SELECT * FROM PACIENTE WHERE FOLIO = :folio', {'folio': folio})
         paciente = row_to_dict(cur)
         if paciente is None:
-            raise HTTPException(status_code=404, detail='Beneficiario no encontrado')
+            raise NotFoundError('Beneficiario no encontrado')
         paciente = decrypt_row(paciente, PACIENTE_ENCRYPTED_FIELDS)
         nombre_completo = ' '.join((
             _strip_char(paciente.get('nombre')) or '',
@@ -441,7 +442,7 @@ def renovar_membresia(folio: str, data: dict, current_user: dict = None):
         )
         row = cur.fetchone()
         if row is None:
-            raise HTTPException(status_code=404, detail='Beneficiario no encontrado')
+            raise NotFoundError('Beneficiario no encontrado')
         id_paciente = row[0]
 
         # 1. Actualizar fechas de membresía
@@ -493,35 +494,35 @@ def renovar_membresia(folio: str, data: dict, current_user: dict = None):
 
 
 class OracleBeneficiariosRepository:
-    def listar_tipos_espina(self, *args, **kwargs):
-        return listar_tipos_espina(*args, **kwargs)
+    def listar_tipos_espina(self, current_user=None):
+        return listar_tipos_espina(current_user)
 
-    def stats_beneficiarios(self, *args, **kwargs):
-        return stats_beneficiarios(*args, **kwargs)
+    def stats_beneficiarios(self, current_user=None):
+        return stats_beneficiarios(current_user)
 
-    def dashboard_stats(self, *args, **kwargs):
-        return dashboard_stats(*args, **kwargs)
+    def dashboard_stats(self, current_user=None):
+        return dashboard_stats(current_user)
 
-    def listar_beneficiarios(self, *args, **kwargs):
-        return listar_beneficiarios(*args, **kwargs)
+    def listar_beneficiarios(self, nombre=None, estado=None, genero=None, busqueda=None, membresia_estatus=None, tipo_cuota=None, current_user=None, limit=100, offset=0):
+        return listar_beneficiarios(nombre, estado, genero, busqueda, membresia_estatus, tipo_cuota, current_user, limit, offset)
 
-    def obtener_beneficiario(self, *args, **kwargs):
-        return obtener_beneficiario(*args, **kwargs)
+    def obtener_beneficiario(self, folio, current_user=None):
+        return obtener_beneficiario(folio, current_user)
 
-    def crear_beneficiario(self, *args, **kwargs):
-        return crear_beneficiario(*args, **kwargs)
+    def crear_beneficiario(self, data, current_user=None):
+        return crear_beneficiario(data, current_user)
 
-    def actualizar_beneficiario(self, *args, **kwargs):
-        return actualizar_beneficiario(*args, **kwargs)
+    def actualizar_beneficiario(self, folio, data, current_user=None):
+        return actualizar_beneficiario(folio, data, current_user)
 
-    def eliminar_beneficiario(self, *args, **kwargs):
-        return eliminar_beneficiario(*args, **kwargs)
+    def eliminar_beneficiario(self, folio, current_user=None):
+        return eliminar_beneficiario(folio, current_user)
 
-    def historial_beneficiario(self, *args, **kwargs):
-        return historial_beneficiario(*args, **kwargs)
+    def historial_beneficiario(self, folio, current_user=None, limit_citas=100, offset_citas=0, limit_pagos=100, offset_pagos=0, limit_comodatos=100, offset_comodatos=0):
+        return historial_beneficiario(folio, current_user, limit_citas, offset_citas, limit_pagos, offset_pagos, limit_comodatos, offset_comodatos)
 
-    def listar_membresias_proximas_a_vencer(self, *args, **kwargs):
-        return listar_membresias_proximas_a_vencer(*args, **kwargs)
+    def listar_membresias_proximas_a_vencer(self, dias=30, current_user=None, limit=500, offset=0):
+        return listar_membresias_proximas_a_vencer(dias, current_user, limit, offset)
 
-    def renovar_membresia(self, *args, **kwargs):
-        return renovar_membresia(*args, **kwargs)
+    def renovar_membresia(self, folio, data, current_user=None):
+        return renovar_membresia(folio, data, current_user)

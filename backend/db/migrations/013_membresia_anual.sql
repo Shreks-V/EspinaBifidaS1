@@ -1,0 +1,50 @@
+-- ============================================================================
+-- Migration 013 — Membresías anuales
+-- Fecha: 2026-04-15
+-- Objetivo: añadir seguimiento de fechas de membresía anual en PACIENTE.
+--   1. FECHA_INICIO_MEMBRESIA  — cuando se activó/renovó la membresía
+--   2. FECHA_VENCIMIENTO_MEMBRESIA — FECHA_INICIO + 12 meses
+--   Backfill de registros existentes.
+--   Auto-vencimiento de membresías pasadas.
+-- ============================================================================
+
+-- 1. FECHA_INICIO_MEMBRESIA (idempotente)
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE PACIENTE ADD FECHA_INICIO_MEMBRESIA DATE';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE = -1430 THEN NULL; ELSE RAISE; END IF;
+END;
+/
+
+-- 2. FECHA_VENCIMIENTO_MEMBRESIA (idempotente)
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE PACIENTE ADD FECHA_VENCIMIENTO_MEMBRESIA DATE';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE = -1430 THEN NULL; ELSE RAISE; END IF;
+END;
+/
+
+-- 3. Backfill: miembros ACTIVOS → inicio = FECHA_ALTA, vencimiento = inicio + 12 meses
+UPDATE PACIENTE
+   SET FECHA_INICIO_MEMBRESIA      = NVL(FECHA_ALTA, SYSDATE),
+       FECHA_VENCIMIENTO_MEMBRESIA = ADD_MONTHS(NVL(FECHA_ALTA, SYSDATE), 12)
+ WHERE MEMBRESIA_ESTATUS = 'ACTIVO'
+   AND FECHA_INICIO_MEMBRESIA IS NULL;
+
+-- 4. Backfill: miembros VENCIDOS/SUSPENDIDOS → vencimiento en el pasado
+UPDATE PACIENTE
+   SET FECHA_INICIO_MEMBRESIA      = NVL(FECHA_ALTA, SYSDATE - 400),
+       FECHA_VENCIMIENTO_MEMBRESIA = NVL(ADD_MONTHS(FECHA_ALTA, 12), SYSDATE - 1)
+ WHERE MEMBRESIA_ESTATUS IN ('VENCIDO', 'SUSPENDIDO')
+   AND FECHA_INICIO_MEMBRESIA IS NULL;
+
+-- 5. Sincronizar: marcar VENCIDO donde la fecha ya pasó (aunque estén ACTIVO)
+UPDATE PACIENTE
+   SET MEMBRESIA_ESTATUS = 'VENCIDO'
+ WHERE MEMBRESIA_ESTATUS = 'ACTIVO'
+   AND FECHA_VENCIMIENTO_MEMBRESIA IS NOT NULL
+   AND FECHA_VENCIMIENTO_MEMBRESIA < TRUNC(SYSDATE);
+
+COMMIT;

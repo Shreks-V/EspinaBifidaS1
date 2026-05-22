@@ -1,0 +1,77 @@
+# Manifest Qase Sprint 2 — proyecto FJ26SV
+# Sincronizar: python scripts/qase_sync_sprint2.py
+
+project: FJ26SV
+
+suites:
+  - title: "[S2] HU-09 — CURP"
+    cases:
+      - automation_id: hu09_curp_formato_valido
+        title: "CURP con formato oficial mexicano aceptado en DTO"
+      - automation_id: hu09_curp_formato_invalido
+        title: "CURP con formato inválido rechazado en DTO"
+      - automation_id: hu09_curp_duplicado_api
+        title: "Verificación CURP ya existente vía API dedicada"
+
+  - title: "[S2] HU-10 — Almacén"
+    cases:
+      - automation_id: hu10_listar_productos
+        title: "Listar productos autenticado"
+      - automation_id: hu10_stats
+        title: "Estadísticas de almacén"
+      - automation_id: hu10_crear_producto_encargado
+        title: "Crear producto con rol encargado de almacén"
+      - automation_id: hu10_listar_servicios
+        title: "Listar servicios"
+
+  - title: "[S2] HU-11 — Reportes"
+    cases:
+      - automation_id: hu11_resumen_json
+        title: "Reporte resumen JSON"
+      - automation_id: hu11_pdf_resumen
+        title: "Exportar reporte PDF (resumen)"
+
+  - title: "[S2] HU-12 — Notificaciones"
+    cases:
+      - automation_id: hu12_lista_vacia_o_json
+        title: "GET notificaciones devuelve lista JSON"
+      - automation_id: hu12_alertas_almacen_y_citas
+        title: "Notificaciones incluyen citas hoy y alertas de almacén"
+
+  - title: "[S2] HU-13 — Usuarios"
+    cases:
+      - automation_id: hu13_listar_usuarios_admin
+        title: "Administrador puede listar usuarios"
+      - automation_id: hu13_crear_usuario
+        title: "Administrador crea usuario con correo único"
+      - automation_id: hu13_config_publica
+        title: "Endpoint de configuración pública accesible"
+
+  - title: "[S2] HU-14 — Comodato"
+    cases:
+      - automation_id: hu14_listar_comodatos
+        title: "Listar comodatos"
+      - automation_id: hu14_crear_comodato
+        title: "Alta de comodato con datos mínimos"
+      - automation_id: hu14_contrato_pdf
+        title: "Descargar contrato PDF de comodato"
+
+  - title: "[S2] HU-15 — Saldo pendiente"
+    cases:
+      - automation_id: hu15_cobro_parcial_saldo
+        title: "Cobro parcial: saldo pendiente y monto pagado coherentes"
+      - automation_id: hu15_cobro_completo_saldo_cero
+        title: "Cobro total: saldo pendiente en cero"
+
+  - title: "[S2] HU-17 — PDF cita"
+    cases:
+      - automation_id: hu17_comprobante_pdf_valido
+        title: "Generar comprobante PDF para cita existente"
+      - automation_id: hu17_comprobante_cita_inexistente
+        title: "Cita inexistente: error controlado"
+
+  - title: "[S2] Integración Oracle"
+    cases:
+      - automation_id: hu_s2_oracle_health
+        title: "Health check con app completa y Oracle"
+

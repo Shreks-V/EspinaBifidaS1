@@ -88,4 +88,14 @@ export class AuthService {
   getUser(): UserInfo | null {
     return this.userSubject.value;
   }
+
+  isAdmin(): boolean {
+    const rol = (this.userSubject.value?.rol || '').toUpperCase();
+    return rol === 'ADMINISTRADOR' || rol === 'ADMIN';
+  }
+
+  hasRole(...roles: string[]): boolean {
+    const rol = (this.userSubject.value?.rol || '').toUpperCase();
+    return roles.map(r => r.toUpperCase()).includes(rol);
+  }
 }

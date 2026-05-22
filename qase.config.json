@@ -1,0 +1,14 @@
+{
+  "mode": "off",
+  "testops": {
+    "project": "FJ26SV",
+    "run": {
+      "title": "Pytest — EBIF"
+    }
+  },
+  "framework": {
+    "pytest": {
+      "captureLogs": true
+    }
+  }
+}
